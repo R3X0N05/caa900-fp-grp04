@@ -2,7 +2,7 @@
 // Fill these in after deploying to AWS Learner Lab.
 // For localhost testing, leave API_BASE as the mock server URL.
 const AWS_CONFIG = {
-  API_BASE:      "http://localhost:4000/prod", // swap for API Gateway URL when on AWS
+  API_BASE:      "https://9ok7xa70r0.execute-api.us-east-1.amazonaws.com/prod", // swap for API Gateway URL when on AWS
   USER_POOL_ID:  "us-east-1_XXXXXXXXX",
   CLIENT_ID:     "XXXXXXXXXXXXXXXXXXXXXXXXXX",
   REGION:        "us-east-1",
