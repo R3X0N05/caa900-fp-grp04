@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="description" content="Rexony — Perfect home decor e-commerce platform built on AWS"/>
+<title>Rexony</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════ -->
+<header id="site-header">
+  <div class="hd-inner">
+    <a class="logo" href="#" onclick="showPage('home');return false;">REXONY</a>
+    <nav class="main-nav">
+      <a onclick="showPage('home')">Home</a>
+      <a onclick="showPage('shop')">Shop</a>
+      <a onclick="showPage('about')">About</a>
+      <a onclick="showPage('contact')">Contact</a>
+    </nav>
+    <div class="hd-actions">
+      <button class="icon-btn" onclick="toggleSearch()" title="Search">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </button>
+      <button class="icon-btn cart-btn" onclick="showPage('cart')" title="Cart">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <span class="cart-count" id="cart-count">0</span>
+      </button>
+      <button class="icon-btn" id="user-icon-btn" onclick="toggleUserMenu()" title="Account">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </button>
+      <div class="user-dropdown" id="user-dropdown">
+        <div id="ud-logged-out"><a onclick="showPage('login');closeDropdowns()">Login / Register</a></div>
+        <div id="ud-logged-in" style="display:none">
+          <a onclick="showPage('profile');closeDropdowns()">My Profile</a>
+          <a onclick="showPage('orders');closeDropdowns()">My Orders</a>
+          <a id="admin-link" onclick="showPage('admin-dash');closeDropdowns()" style="display:none">Admin Dashboard</a>
+          <hr/>
+          <a onclick="logout()" class="logout-link">Logout</a>
+        </div>
+      </div>
+    </div>
+    <button class="burger" onclick="toggleMobileNav()">☰</button>
+  </div>
+  <div class="search-bar" id="search-bar">
+    <input type="text" placeholder="Search products…" id="search-input" oninput="liveSearch()" onkeydown="if(event.key==='Enter')doSearch()"/>
+    <button class="btn-primary" onclick="doSearch()">Search</button>
+  </div>
+</header>
+
+<!-- ══ APP ═════════════════════════════════════════════ -->
+<main id="app">
+
+<!-- ── HOME ──────────────────────────────────────────── -->
+<div id="page-home" class="page">
+  <section class="hero">
+    <div class="hero-text">
+      <p class="hero-eyebrow">Rexony</p>
+      <h1 class="hero-title">YOUR <span class="accent-text">PASSION</span><br/>IN YOUR <span class="accent-text">HOME</span></h1>
+      <p class="hero-sub">Home décor and lifestyle necessities.</p>
+      <div class="hero-ctas">
+        <button class="btn-primary" onclick="showPage('shop')">Shop Now</button>
+        <button class="btn-ghost" onclick="document.getElementById('home-products').scrollIntoView({behavior:'smooth'})">Browse ↓</button>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="hero-card">
+        <div class="hero-card-inner">
+          <div class="hc-glow"></div>
+          <svg width="110" height="110" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 7h10M7 11h6" stroke-width="1" opacity=".5"/></svg>
+          <p class="hc-label">Premium Tech</p>
+          <span class="hc-tag">AWS Powered</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="stats-bar">
+    <div class="stat"><span class="stat-n">10+</span><span class="stat-l">Products</span></div>
+    <div class="stat"><span class="stat-n">5+</span><span class="stat-l">Customers</span></div>
+    <div class="stat"><span class="stat-n">6.7★</span><span class="stat-l">Avg Rating</span></div>
+    <div class="stat"><span class="stat-n">Free</span><span class="stat-l">Ship ≥ $99</span></div>
+  </div>
+
+  <section class="section" id="home-products">
+    <div class="section-header">
+      <h2 class="section-title">FEATURED PRODUCTS</h2>
+      <a class="view-all" onclick="showPage('shop')">View All →</a>
+    </div>
+    <div class="product-grid" id="home-product-grid"><div class="loader-ring"></div></div>
+  </section>
+
+  <div class="cat-section">
+    <div class="section">
+      <h2 class="section-title">SHOP BY CATEGORY</h2>
+      <div class="cat-grid">
+        <div class="cat-card" onclick="filterByCategory('Figures')"><span class="cat-icon">😃</span><span>Figures</span></div>
+        <div class="cat-card" onclick="filterByCategory('Posters')"><span class="cat-icon">😝</span><span>Posters</span></div>
+        <div class="cat-card" onclick="filterByCategory('For Guys')"><span class="cat-icon">♂️</span><span>For Guys</span></div>
+        <div class="cat-card" onclick="filterByCategory('For Gals')"><span class="cat-icon">♀️</span><span>For Gals</span></div>
+        <div class="cat-card" onclick="filterByCategory('Wearables')"><span class="cat-icon">😭</span><span>Wearables</span></div>
+        <div class="cat-card" onclick="filterByCategory('Decor')"><span class="cat-icon">🤪</span><span>Decor</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="promo-banner">
+    <div class="promo-inner">
+      <div class="pb-content">
+        <p class="pb-tag">Limited Time Offer</p>
+        <h2>UP TO 40% OFF<br/>SELECTED ITEMS</h2>
+        <button class="btn-primary" onclick="showPage('shop')">Shop the Sale</button>
+      </div>
+      <div class="pb-visual">🔥</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SHOP ───────────────────────────────────────────── -->
+<div id="page-shop" class="page" style="display:none">
+  <div class="shop-layout">
+    <aside class="shop-sidebar">
+      <h3>FILTERS</h3>
+      <div class="filter-group">
+        <label class="filter-label">Category</label>
+        <select id="cat-filter" onchange="applyFilters()">
+          <option value="">All Categories</option>
+          <option value="Figures">Figures</option>
+          <option value="Posters">Posters</option>
+          <option value="For Guys">For Guys</option>
+          <option value="For Gals">For Gals</option>
+          <option value="Wearables">Wearables</option>
+          <option value="Decor">Decor</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Price Range</label>
+        <div class="price-range">
+          <input type="range" id="price-min" min="0" max="5000" value="0" oninput="updatePriceLabel()"/>
+          <input type="range" id="price-max" min="0" max="5000" value="5000" oninput="updatePriceLabel()"/>
+          <div class="price-labels"><span id="price-min-lbl">$0</span><span id="price-max-lbl">$5000</span></div>
+        </div>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Min Rating</label>
+        <div class="rating-filter">
+          <span class="rf-star active" onclick="setMinRating(0)" data-r="0">All ratings</span>
+          <span class="rf-star" onclick="setMinRating(3)" data-r="3">3★ &amp; above</span>
+          <span class="rf-star" onclick="setMinRating(4)" data-r="4">4★ &amp; above</span>
+        </div>
+      </div>
+      <button class="btn-secondary" style="width:100%;margin-top:8px" onclick="clearFilters()">Clear All Filters</button>
+    </aside>
+    <div class="shop-main">
+      <div class="shop-topbar">
+        <span id="shop-count">Loading…</span>
+        <select id="sort-select" onchange="applyFilters()">
+          <option value="">Sort By</option>
+          <option value="price-asc">Price: Low → High</option>
+          <option value="price-desc">Price: High → Low</option>
+          <option value="rating">Highest Rated</option>
+        </select>
+      </div>
+      <div class="product-grid" id="shop-product-grid"><div class="loader-ring"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PRODUCT DETAIL ─────────────────────────────────── -->
+<div id="page-product" class="page" style="display:none">
+  <div class="pd-container">
+    <button class="back-btn" onclick="showPage('shop')">← Back to Shop</button>
+    <div class="pd-grid">
+      <div class="pd-images">
+        <div class="pd-main-img" id="pd-main-img"><div class="img-placeholder">📦</div></div>
+      </div>
+      <div class="pd-info">
+        <p class="pd-category" id="pd-cat"></p>
+        <h1 class="pd-title" id="pd-name"></h1>
+        <div class="pd-rating">
+          <span class="stars" id="pd-stars"></span>
+          <span class="pd-reviews" id="pd-reviews"></span>
+        </div>
+        <div class="pd-price" id="pd-price"></div>
+        <p class="pd-desc" id="pd-desc"></p>
+        <div class="pd-stock" id="pd-stock"></div>
+        <div class="pd-qty">
+          <button onclick="changeQty(-1)">−</button>
+          <span id="pd-qty-val">1</span>
+          <button onclick="changeQty(1)">+</button>
+        </div>
+        <div class="pd-actions">
+          <button class="btn-primary full-w" onclick="addToCartFromDetail()">Add to Cart</button>
+          <button class="btn-ghost full-w" onclick="buyNow()">Buy Now</button>
+        </div>
+        <div class="pd-meta">
+          <span>Free shipping on orders over $99</span>
+          <span>30-day returns</span>
+          <span>AWS-secured checkout</span>
+        </div>
+      </div>
+    </div>
+    <div class="reviews-section">
+      <h2>CUSTOMER REVIEWS</h2>
+      <div id="reviews-list"></div>
+      <div class="add-review" id="add-review-form" style="display:none">
+        <h3>Write a Review</h3>
+        <div class="star-select" id="star-select">
+          <span onclick="selectStar(1)">★</span><span onclick="selectStar(2)">★</span>
+          <span onclick="selectStar(3)">★</span><span onclick="selectStar(4)">★</span>
+          <span onclick="selectStar(5)">★</span>
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <textarea id="review-comment" rows="3" placeholder="Share your experience with this product…"></textarea>
+        </div>
+        <button class="btn-primary" onclick="submitReview()">Submit Review</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── CART ───────────────────────────────────────────── -->
+<div id="page-cart" class="page" style="display:none">
+  <div class="cart-container">
+    <h1 class="page-title">SHOPPING CART</h1>
+    <div class="cart-layout">
+      <div class="cart-items" id="cart-items-list">
+        <div class="empty-cart" id="empty-cart">
+          <div class="empty-icon">🛒</div>
+          <h2>Your cart is empty</h2>
+          <p>Add some products to get started.</p>
+          <button class="btn-primary" onclick="showPage('shop')">Start Shopping</button>
+        </div>
+      </div>
+      <div class="cart-summary" id="cart-summary" style="display:none">
+        <h2>ORDER SUMMARY</h2>
+        <div class="summary-row"><span>Subtotal</span><span id="cart-subtotal">$0.00</span></div>
+        <div class="summary-row"><span>Shipping</span><span id="cart-shipping">Free</span></div>
+        <div class="summary-row"><span>Tax (18%)</span><span id="cart-tax">$0.00</span></div>
+        <div class="summary-row total"><span>Total</span><span id="cart-total">$0.00</span></div>
+        <button class="btn-primary full-w" onclick="proceedToCheckout()">Checkout →</button>
+        <button class="btn-ghost full-w" onclick="showPage('shop')">Continue Shopping</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── LOGIN / REGISTER ───────────────────────────────── -->
+<div id="page-login" class="page" style="display:none">
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="login-tab" onclick="switchAuthTab('login')">Login</button>
+        <button class="auth-tab" id="register-tab" onclick="switchAuthTab('register')">Register</button>
+      </div>
+      <div id="login-form">
+        <h2>Welcome Back</h2>
+        <p class="auth-sub">Sign in to your Rexony account</p>
+        <div class="form-group"><label>Email</label><input type="email" id="login-email" placeholder="you@example.com"/></div>
+        <div class="form-group"><label>Password</label><input type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')handleLogin()"/></div>
+        <div class="form-row-end"><a onclick="showPage('forgot-password')">Forgot password?</a></div>
+        <div id="login-error" class="form-error" style="display:none"></div>
+        <button class="btn-primary full-w" onclick="handleLogin()">Sign In</button>
+        <div class="auth-divider"><span>or</span></div>
+        <button class="btn-ghost full-w cognito-btn" onclick="loginWithCognito()">Sign in with Cognito Hosted UI</button>
+        <p style="font-size:12px;color:var(--muted);margin-top:14px;text-align:center">Demo: use any email/password · admin@rexony.test for admin access</p>
+      </div>
+      <div id="register-form" style="display:none">
+        <h2>Create Account</h2>
+        <p class="auth-sub">Join thousands of Rexony customers</p>
+        <div class="form-group"><label>Full Name</label><input type="text" id="reg-name" placeholder="John Doe"/></div>
+        <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="you@example.com"/></div>
+        <div class="form-group"><label>Password</label><input type="password" id="reg-password" placeholder="Min 8 characters"/></div>
+        <div id="reg-error" class="form-error" style="display:none"></div>
+        <button class="btn-primary full-w" onclick="handleRegister()">Create Account</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PROFILE ─────────────────────────────────────────── -->
+<div id="page-profile" class="page" style="display:none">
+  <div class="profile-container">
+    <div class="profile-card">
+      <div class="avatar-circle" id="profile-avatar-initials">JD</div>
+      <h2 id="profile-name">John Doe</h2>
+      <p id="profile-email-display">john@example.com</p>
+      <span class="profile-badge" id="profile-role-badge">Customer</span>
+    </div>
+    <div class="profile-tabs">
+      <button class="p-tab active" onclick="switchProfileTab('info')">My Info</button>
+      <button class="p-tab" onclick="switchProfileTab('password')">Change Password</button>
+    </div>
+    <div class="profile-body">
+      <div id="profile-info-tab">
+        <div class="form-group"><label>Full Name</label><input type="text" id="profile-name-input"/></div>
+        <div class="form-group"><label>Email</label><input type="email" id="profile-email-input" disabled/></div>
+        <button class="btn-primary" onclick="updateProfile()">Update Profile</button>
+      </div>
+      <div id="profile-password-tab" style="display:none">
+        <div class="form-group"><label>Current Password</label><input type="password" id="old-password"/></div>
+        <div class="form-group"><label>New Password</label><input type="password" id="new-password"/></div>
+        <div class="form-group"><label>Confirm New Password</label><input type="password" id="confirm-password"/></div>
+        <button class="btn-primary" onclick="changePassword()">Update Password</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MY ORDERS ──────────────────────────────────────── -->
+<div id="page-orders" class="page" style="display:none">
+  <div class="orders-container">
+    <h1 class="page-title">MY ORDERS</h1>
+    <div id="orders-list"><div class="loader-ring"></div></div>
+  </div>
+</div>
+
+<!-- ── SHIPPING ───────────────────────────────────────── -->
+<div id="page-shipping" class="page" style="display:none">
+  <div class="checkout-container">
+    <div class="checkout-steps">
+      <div class="cs active">1. Shipping</div>
+      <div class="cs">2. Confirm</div>
+      <div class="cs">3. Payment</div>
+    </div>
+    <div class="checkout-card">
+      <h2>SHIPPING DETAILS</h2>
+      <div class="form-grid">
+        <div class="form-group full-span"><label>Street Address</label><input type="text" id="ship-address" placeholder="123 Main Street"/></div>
+        <div class="form-group"><label>City</label><input type="text" id="ship-city" placeholder="New York"/></div>
+        <div class="form-group"><label>State / Province</label><input type="text" id="ship-state" placeholder="NY"/></div>
+        <div class="form-group"><label>Postal Code</label><input type="text" id="ship-pin" placeholder="10001"/></div>
+        <div class="form-group"><label>Country</label>
+          <select id="ship-country">
+            <option value="US">United States</option>
+            <option value="MY">Malaysia</option>
+            <option value="SG">Singapore</option>
+            <option value="GB">United Kingdom</option>
+            <option value="AU">Australia</option>
+            <option value="CA">Canada</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Phone Number</label><input type="tel" id="ship-phone" placeholder="+1 555 000 0000"/></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-primary" onclick="proceedToConfirm()">Continue →</button>
+        <button class="btn-ghost" onclick="showPage('cart')">← Back to Cart</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONFIRM ORDER ──────────────────────────────────── -->
+<div id="page-confirm" class="page" style="display:none">
+  <div class="checkout-container">
+    <div class="checkout-steps">
+      <div class="cs done">1. Shipping ✓</div>
+      <div class="cs active">2. Confirm</div>
+      <div class="cs">3. Payment</div>
+    </div>
+    <div class="confirm-grid">
+      <div class="checkout-card">
+        <h2>SHIPPING TO</h2>
+        <div id="confirm-shipping-details"></div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:18px 0"/>
+        <h2>ORDER ITEMS</h2>
+        <div id="confirm-items"></div>
+      </div>
+      <div class="checkout-card">
+        <h2>ORDER SUMMARY</h2>
+        <div class="summary-row"><span>Subtotal</span><span id="confirm-subtotal"></span></div>
+        <div class="summary-row"><span>Shipping</span><span id="confirm-ship"></span></div>
+        <div class="summary-row"><span>Tax (18%)</span><span id="confirm-tax"></span></div>
+        <div class="summary-row total"><span>Total</span><span id="confirm-total"></span></div>
+        <button class="btn-primary full-w" onclick="proceedToPayment()">Proceed to Payment →</button>
+        <button class="btn-ghost full-w" onclick="showPage('shipping')">← Edit Shipping</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PAYMENT ────────────────────────────────────────── -->
+<div id="page-payment" class="page" style="display:none">
+  <div class="checkout-container">
+    <div class="checkout-steps">
+      <div class="cs done">1. Shipping ✓</div>
+      <div class="cs done">2. Confirm ✓</div>
+      <div class="cs active">3. Payment</div>
+    </div>
+    <div class="payment-grid">
+      <div class="checkout-card">
+        <h2>PAYMENT DETAILS</h2>
+        <p class="payment-icons">💳 Secured by Stripe · VISA · Mastercard · Amex</p>
+        <div class="demo-card-input">
+          <div class="form-group"><label>Card Number</label><input type="text" id="card-number" placeholder="4242 4242 4242 4242" maxlength="19"/></div>
+          <div class="form-row-2">
+            <div class="form-group"><label>Expiry</label><input type="text" placeholder="MM / YY" maxlength="7"/></div>
+            <div class="form-group"><label>CVC</label><input type="text" placeholder="123" maxlength="4"/></div>
+          </div>
+          <div class="form-group"><label>Name on Card</label><input type="text" placeholder="John Doe"/></div>
+        </div>
+        <div class="test-cards">
+          🧪 <strong>Test cards:</strong> <code>4242 4242 4242 4242</code> (success) &nbsp;·&nbsp; <code>4000 0000 0000 0002</code> (decline) — any future expiry, any CVC
+        </div>
+        <button class="btn-primary full-w pay-btn" id="pay-btn" onclick="processPayment()">
+          Pay <span id="pay-amount"></span>
+        </button>
+        <p class="payment-secure">🔒 Secured by Stripe · Your card is never stored on our servers</p>
+      </div>
+      <div class="checkout-card payment-summary">
+        <h2>ORDER TOTAL</h2>
+        <div class="summary-row total"><span>Amount Due</span><span id="payment-total"></span></div>
+        <div style="margin-top:16px;font-size:12px;color:var(--muted);line-height:1.7">
+          <p>✓ 30-day return policy</p>
+          <p>✓ Free shipping on orders over $99</p>
+          <p>✓ Order confirmation via email (SNS)</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ORDER SUCCESS ──────────────────────────────────── -->
+<div id="page-success" class="page" style="display:none">
+  <div class="success-container">
+    <div class="success-card">
+      <div class="success-icon">✓</div>
+      <h1>ORDER PLACED!</h1>
+      <p>Your order has been confirmed and is being processed.</p>
+      <p>An email confirmation has been sent via Amazon SNS.</p>
+      <div class="order-id-display">Order ID: <span id="success-order-id"></span></div>
+      <div class="success-actions">
+        <button class="btn-primary" onclick="showPage('orders')">Track My Orders</button>
+        <button class="btn-ghost" onclick="showPage('shop')">Continue Shopping</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── FORGOT PASSWORD ────────────────────────────────── -->
+<div id="page-forgot-password" class="page" style="display:none">
+  <div class="auth-container">
+    <div class="auth-card">
+      <h2>Forgot Password</h2>
+      <p class="auth-sub">We'll send a verification code to your email via Amazon Cognito.</p>
+      <div class="form-group"><label>Email Address</label><input type="email" id="fp-email" placeholder="you@example.com"/></div>
+      <div id="fp-send-section">
+        <button class="btn-primary full-w" onclick="sendResetCode()">Send Verification Code</button>
+      </div>
+      <div id="fp-code-section" style="display:none">
+        <div class="form-group"><label>Verification Code</label><input type="text" id="fp-code" placeholder="6-digit code from email"/></div>
+        <div class="form-group"><label>New Password</label><input type="password" id="fp-new-pass" placeholder="Min 8 characters"/></div>
+        <button class="btn-primary full-w" onclick="resetPassword()">Reset Password</button>
+      </div>
+      <a onclick="showPage('login')">← Back to Login</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── ABOUT ──────────────────────────────────────────── -->
+<div id="page-about" class="page" style="display:none">
+  <div class="about-hero">
+    <h1>ABOUT REXONY</h1>
+    <p>We bring your pleasures to your place!</p>
+  </div>
+  <div class="about-grid">
+    <div class="about-card"><span class="about-icon">🎯</span><h3>Our Mission</h3><p>Make premium technology accessible to everyone through competitive pricing, seamless UX, and a serverless AWS backend that scales with demand.</p></div>
+    <div class="about-card"><span class="about-icon">☁️</span><h3>AWS Architecture</h3><p>Built entirely serverless — Lambda, API Gateway, DynamoDB, Cognito, S3, CloudFront, SNS. Zero idle cost, infinite scale.</p></div>
+    <div class="about-card"><span class="about-icon">🔒</span><h3>Secure by Design</h3><p>Amazon Cognito for authentication, scoped IAM roles, VPC private subnets, and Stripe for PCI-compliant payments. Security is never an afterthought.</p></div>
+  </div>
+</div>
+
+<!-- ── CONTACT ────────────────────────────────────────── -->
+<div id="page-contact" class="page" style="display:none">
+  <div class="contact-container">
+    <h1>GET IN TOUCH</h1>
+    <div class="contact-grid">
+      <div class="contact-info">
+        <div class="ci-item"><span>📧</span><div><strong>Email</strong><p>support@rexony.moe</p></div></div>
+        <div class="ci-item"><span>📞</span><div><strong>Phone</strong><p>+1 (555) 000-0000</p></div></div>
+        <div class="ci-item"><span>📍</span><div><strong>Address</strong><p>1760 Finch Ave E<br/>North York, ON M2J 2X5</p></div></div>
+        <div class="ci-item"><span>☁️</span><div><strong>Hosted on</strong><p>Amazon Web Services<br/>Region: us-east-1</p></div></div>
+      </div>
+      <div class="contact-form">
+        <div class="form-group"><label>Your Name</label><input type="text" placeholder="John Doe"/></div>
+        <div class="form-group"><label>Email Address</label><input type="email" placeholder="you@example.com"/></div>
+        <div class="form-group"><label>Subject</label><input type="text" placeholder="How can we help?"/></div>
+        <div class="form-group"><label>Message</label><textarea rows="5" placeholder="Tell us more…"></textarea></div>
+        <button class="btn-primary" onclick="submitContact()">Send Message</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADMIN DASHBOARD ══════════════════════════════════ -->
+<div id="page-admin-dash" class="page" style="display:none">
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <div class="admin-logo">REXONY <span>ADMIN</span></div>
+      <nav class="admin-nav">
+        <div class="an-item active" onclick="switchAdmin('dashboard',this)"><span class="an-icon">📊</span>Dashboard</div>
+        <div class="an-item" onclick="switchAdmin('products',this)"><span class="an-icon">📦</span>Products</div>
+        <div class="an-item" onclick="switchAdmin('orders',this)"><span class="an-icon">🛒</span>Orders</div>
+        <div class="an-item" onclick="switchAdmin('users',this)"><span class="an-icon">👥</span>Users</div>
+        <div class="an-item" onclick="switchAdmin('reviews',this)"><span class="an-icon">⭐</span>Reviews</div>
+        <hr/>
+        <div class="an-item" onclick="showPage('home')"><span class="an-icon">🏠</span>Back to Store</div>
+      </nav>
+    </aside>
+    <div class="admin-main">
+
+      <!-- Dashboard Home -->
+      <div id="admin-dashboard" class="admin-section">
+        <div class="admin-header">
+          <h1>Dashboard</h1>
+          <span class="admin-date" id="admin-date"></span>
+        </div>
+        <div class="stat-cards">
+          <div class="stat-card revenue"><div class="sc-icon">💰</div><div class="sc-data"><span class="sc-num" id="dash-revenue">$0</span><span class="sc-label">Total Revenue</span></div></div>
+          <div class="stat-card products"><div class="sc-icon">📦</div><div class="sc-data"><span class="sc-num" id="dash-products">0</span><span class="sc-label">Products</span></div></div>
+          <div class="stat-card orders"><div class="sc-icon">🛒</div><div class="sc-data"><span class="sc-num" id="dash-orders">0</span><span class="sc-label">Orders</span></div></div>
+          <div class="stat-card users"><div class="sc-icon">👥</div><div class="sc-data"><span class="sc-num" id="dash-users">0</span><span class="sc-label">Users</span></div></div>
+        </div>
+        <div class="admin-tables-grid">
+          <div class="admin-table-card">
+            <h2>Recent Orders</h2>
+            <table class="admin-table"><thead><tr><th>Order ID</th><th>Customer</th><th>Amount</th><th>Status</th></tr></thead>
+            <tbody id="recent-orders-tbody"><tr><td colspan="4" class="loading-cell">Loading…</td></tr></tbody></table>
+          </div>
+          <div class="admin-table-card">
+            <h2>Low Stock Alert</h2>
+            <table class="admin-table"><thead><tr><th>Product</th><th>Stock</th><th>Action</th></tr></thead>
+            <tbody id="low-stock-tbody"><tr><td colspan="3" class="loading-cell">Loading…</td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Products -->
+      <div id="admin-products" class="admin-section" style="display:none">
+        <div class="admin-header">
+          <h1>Products</h1>
+          <button class="btn-primary" onclick="showAddProduct()">+ Add Product</button>
+        </div>
+        <div class="admin-form-card" id="product-form-card" style="display:none">
+          <h2 id="product-form-title">Add New Product</h2>
+          <input type="hidden" id="edit-product-id"/>
+          <div class="form-grid">
+            <div class="form-group"><label>Product Name</label><input type="text" id="prod-name" placeholder="e.g. Wireless Headphones"/></div>
+            <div class="form-group"><label>Price (USD)</label><input type="number" id="prod-price" placeholder="49.99" step="0.01"/></div>
+            <div class="form-group"><label>Category</label>
+              <select id="prod-category">
+                <option>Figures</option><option>Posters</option><option>For Guys</option>
+                <option>For Gals</option><option>Wearables</option><option>Decor</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Stock</label><input type="number" id="prod-stock" placeholder="100"/></div>
+            <div class="form-group full-span"><label>Description</label><textarea id="prod-desc" rows="3" placeholder="Product description…"></textarea></div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-primary" onclick="saveProduct()">Save Product</button>
+            <button class="btn-ghost" onclick="cancelProductForm()">Cancel</button>
+          </div>
+        </div>
+        <div class="admin-table-card">
+          <table class="admin-table">
+            <thead><tr><th>ID</th><th>Name</th><th>Price</th><th>Category</th><th>Stock</th><th>Rating</th><th>Actions</th></tr></thead>
+            <tbody id="admin-products-tbody"><tr><td colspan="7" class="loading-cell">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Orders -->
+      <div id="admin-orders" class="admin-section" style="display:none">
+        <div class="admin-header"><h1>Orders</h1></div>
+        <div class="admin-table-card">
+          <table class="admin-table">
+            <thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Total</th><th>Date</th><th>Status</th><th>Update</th></tr></thead>
+            <tbody id="admin-orders-tbody"><tr><td colspan="7" class="loading-cell">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Users -->
+      <div id="admin-users" class="admin-section" style="display:none">
+        <div class="admin-header"><h1>Users</h1></div>
+        <div class="admin-table-card">
+          <table class="admin-table">
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Actions</th></tr></thead>
+            <tbody id="admin-users-tbody"><tr><td colspan="5" class="loading-cell">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Reviews -->
+      <div id="admin-reviews" class="admin-section" style="display:none">
+        <div class="admin-header"><h1>Reviews</h1></div>
+        <div class="form-group" style="max-width:360px;margin-bottom:20px">
+          <label class="filter-label">Filter by Product ID</label>
+          <div style="display:flex;gap:10px">
+            <input type="text" id="review-filter-pid" placeholder="e.g. prod_001"/>
+            <button class="btn-secondary" style="white-space:nowrap" onclick="loadAdminReviews()">Load Reviews</button>
+          </div>
+        </div>
+        <div class="admin-table-card">
+          <table class="admin-table">
+            <thead><tr><th>User</th><th>Product</th><th>Rating</th><th>Comment</th><th>Action</th></tr></thead>
+            <tbody id="admin-reviews-tbody"><tr><td colspan="5" class="loading-cell">Enter a product ID above to view its reviews</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- ── TOAST ──────────────────────────────────────────── -->
+<div id="toast" class="toast"></div>
+
+<!-- ── MODAL ──────────────────────────────────────────── -->
+<div id="modal-overlay" class="modal-overlay" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div id="modal-content"></div>
+    <button class="modal-close" onclick="closeModal()">×</button>
+  </div>
+</div>
+
+<!-- ── FOOTER ─────────────────────────────────────────── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <a class="logo" onclick="showPage('home')">REXONY</a>
+      <p>Premium Figures for the modern world. Built serverless on Amazon Web Services.</p>
+    </div>
+    <div class="footer-links">
+      <h4>Shop</h4>
+      <a onclick="filterByCategory('Figures')">Figures</a>
+      <a onclick="filterByCategory('Posters')">Posters</a>
+      <a onclick="filterByCategory('Wearables')">Wearables</a>
+      <a onclick="filterByCategory('Decor')">Decor</a>
+    </div>
+    <div class="footer-links">
+      <h4>Company</h4>
+      <a onclick="showPage('about')">About Us</a>
+      <a onclick="showPage('contact')">Contact</a>
+    </div>
+    <div class="footer-links">
+      <h4>Account</h4>
+      <a onclick="showPage('login')">Login / Register</a>
+      <a onclick="showPage('orders')">My Orders</a>
+      <a onclick="showPage('profile')">My Profile</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 Rexony · All rights reserved</p>
+    <div class="footer-badges">
+      <span>☁️ AWS Serverless</span>
+      <span>🔒 Stripe Secured</span>
+      <span>🛡️ Cognito Auth</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ── SCRIPTS ────────────────────────────────────────── -->
+<script src="aws-config.js"></script>
+<script src="auth.js"></script>
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
