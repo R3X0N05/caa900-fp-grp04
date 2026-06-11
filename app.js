@@ -706,12 +706,13 @@ function editProduct(id) {
 async function saveProduct() {
   const id   = document.getElementById("edit-product-id").value;
   const data = {
-    name:        document.getElementById("prod-name").value.trim(),
-    price:       parseFloat(document.getElementById("prod-price").value),
-    category:    document.getElementById("prod-category").value,
-    Stock:       parseInt(document.getElementById("prod-stock").value),
-    description: document.getElementById("prod-desc").value.trim(),
-  };
+  name:        document.getElementById("prod-name").value.trim(),
+  price:       parseFloat(document.getElementById("prod-price").value),
+  category:    document.getElementById("prod-category").value,
+  Stock:       parseInt(document.getElementById("prod-stock").value),
+  description: document.getElementById("prod-desc").value.trim(),
+  images:      [{ url: document.getElementById("prod-image").value.trim() }],  // ADD THIS
+};
   if (!data.name || isNaN(data.price)) return showToast("Name and price are required", "error");
   try {
     if (id) { await ProductAPI.update(id, data); showToast("Product updated!", "success"); }
