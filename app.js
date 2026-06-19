@@ -20,16 +20,66 @@ let STATE = {
 // ═══ INIT ══════════════════════════════════════════════════════════
 window.addEventListener("load", async () => {
   initCognito();
-  STATE.user = await loadUserFromSession();
+
+  try {
+    STATE.user = await loadUserFromSession();
+  } catch {
+    STATE.user = null;
+  }
+
   updateHeaderAuth();
-  if (STATE.user) await loadCart();
+
+  if (STATE.user) {
+    await loadCart();
+  } else {
+    const saved = localStorage.getItem("rexony-guest-cart");
+    if (saved) STATE.cart = JSON.parse(saved);
+  }
+
   updateCartBadge();
+  renderCart();
   await loadHomeProducts();
+
   setInterval(() => {
     const el = document.getElementById("admin-date");
-    if (el) el.textContent = new Date().toLocaleDateString("en-US", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+    if (el) el.textContent = new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric"
+    });
   }, 1000);
 });
+
+async function loadUserFromSession() {
+  try {
+    const poolData = {
+      UserPoolId: AWS_CONFIG.COGNITO_USER_POOL_ID,
+      ClientId: AWS_CONFIG.COGNITO_CLIENT_ID
+    };
+
+    const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+    const currentUser = userPool.getCurrentUser();
+
+    if (!currentUser) return null;
+
+    return await new Promise((resolve, reject) => {
+      currentUser.getSession((err, session) => {
+        if (err || !session || !session.isValid()) return resolve(null);
+
+        const payload = session.getIdToken().decodePayload();
+        resolve({
+          name: payload.name || payload.email || currentUser.getUsername(),
+          email: payload.email || "",
+          role: payload["custom:role"] || "user",
+          username: currentUser.getUsername()
+        });
+      });
+    });
+  } catch {
+    return null;
+  }
+}
 
 // ═══ NAVIGATION ════════════════════════════════════════════════════
 function showPage(name) {
@@ -403,6 +453,25 @@ function updateCartBadge() {
   if (el) el.textContent = STATE.cart.reduce((s, i) => s + i.quantity, 0);
 }
 
+function updateCartSummary() {
+  const sub = STATE.cart.reduce((s, i) => s + (i.price || 0) * (i.quantity || 0), 0);
+  const shipping = sub >= 99 ? 0 : 9.99;
+  const tax = sub * 0.18;
+  const total = sub + shipping + tax;
+
+  document.getElementById("cart-subtotal").textContent = `$${sub.toFixed(2)}`;
+  document.getElementById("cart-shipping").textContent = shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`;
+  document.getElementById("cart-tax").textContent = `$${tax.toFixed(2)}`;
+  document.getElementById("cart-total").textContent = `$${total.toFixed(2)}`;
+
+  sessionStorage.setItem("orderInfo", JSON.stringify({
+    subtotal: sub,
+    shippingCharges: shipping,
+    tax,
+    totalPrice: total
+  }));
+}
+
 function renderCart() {
   const listEl  = document.getElementById("cart-items-list");
   const summEl  = document.getElementById("cart-summary");
@@ -424,40 +493,42 @@ function renderCart() {
       </div>
       <button class="ci-remove" onclick="removeFromCart(${i})" title="Remove">×</button>
     </div>`).join("");
-  const sub      = STATE.cart.reduce((s, i) => s + i.price * i.quantity, 0);
-  const shipping = sub >= 99 ? 0 : 9.99;
-  const tax      = sub * 0.18;
-  const total    = sub + shipping + tax;
-  document.getElementById("cart-subtotal").textContent = `$${sub.toFixed(2)}`;
-  document.getElementById("cart-shipping").textContent = shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`;
-  document.getElementById("cart-tax").textContent      = `$${tax.toFixed(2)}`;
-  document.getElementById("cart-total").textContent    = `$${total.toFixed(2)}`;
-  sessionStorage.setItem("orderInfo", JSON.stringify({ subtotal: sub, shippingCharges: shipping, tax, totalPrice: total }));
+    updateCartSummary();
 }
 
 async function changeCartQty(idx, d) {
   const item = STATE.cart[idx];
+  if (!item) return;
+
   STATE.cart[idx].quantity += d;
+
   if (STATE.cart[idx].quantity <= 0) {
     STATE.cart.splice(idx, 1);
     updateCartBadge();
     renderCart();
+    if (!STATE.user) localStorage.setItem("rexony-guest-cart", JSON.stringify(STATE.cart));
     try { await CartAPI.remove(item.productId); } catch {}
     return;
   }
+
   updateCartBadge();
   renderCart();
+  if (!STATE.user) localStorage.setItem("rexony-guest-cart", JSON.stringify(STATE.cart));
+
   try {
-    await CartAPI.update({ productId: item.productId, quantity: STATE.cart[idx]?.quantity });
+    await CartAPI.update({ productId: item.productId, quantity: STATE.cart[idx].quantity });
   } catch {}
 }
 
 async function removeFromCart(idx) {
   const item = STATE.cart[idx];
+  if (!item) return;
+
   STATE.cart.splice(idx, 1);
   updateCartBadge();
   renderCart();
-  localStorage.setItem("rexony-guest-cart", JSON.stringify(STATE.cart));
+  if (!STATE.user) localStorage.setItem("rexony-guest-cart", JSON.stringify(STATE.cart));
+
   try {
     await CartAPI.remove(item.productId);
   } catch (e) {
