@@ -504,13 +504,27 @@ function updateCartSummary() {
   }));
 }
 
+const EMPTY_CART_HTML = `
+  <div class="empty-cart" id="empty-cart">
+    <div class="empty-icon">🛒</div>
+    <h2>Your cart is empty</h2>
+    <p>Add some products to get started.</p>
+    <button class="btn-primary" onclick="showPage('shop')">Start Shopping</button>
+  </div>
+`;
+
 function renderCart() {
-  const listEl  = document.getElementById("cart-items-list");
-  const summEl  = document.getElementById("cart-summary");
-  const emptyEl = document.getElementById("empty-cart");
-  if (STATE.cart.length === 0) { listEl.innerHTML = ""; listEl.appendChild(emptyEl); emptyEl.style.display = "block"; summEl.style.display = "none"; return; }
-  emptyEl.style.display = "none";
-  summEl.style.display  = "block";
+  const listEl = document.getElementById("cart-items-list");
+  const summEl = document.getElementById("cart-summary");
+
+  if (!STATE.cart || STATE.cart.length === 0) {
+    listEl.innerHTML = EMPTY_CART_HTML;
+    summEl.style.display = "none";
+    updateCartSummary();
+    return;
+  }
+
+  summEl.style.display = "block";
   listEl.innerHTML = STATE.cart.map((item, i) => `
     <div class="cart-item">
       <div class="ci-img">${item.image ? `<img src="${item.image}" alt="${item.name}" style="width:100%;height:100%;object-fit:cover;border-radius:6px"/>` : categoryEmoji("")}</div>
@@ -525,7 +539,8 @@ function renderCart() {
       </div>
       <button class="ci-remove" onclick="removeFromCart(${i})" title="Remove">×</button>
     </div>`).join("");
-    updateCartSummary();
+
+  updateCartSummary();
 }
 
 async function changeCartQty(idx, d) {
@@ -557,7 +572,8 @@ async function removeFromCart(idx) {
 
   STATE.cart = STATE.cart.filter((_, i) => i !== idx);
   updateCartBadge();
-  renderCart();
+  try { renderCart(); } catch (e) { console.error("renderCart failed:", e); }
+  if (!STATE.user) localStorage.setItem("rexony-guest-cart", JSON.stringify(STATE.cart));
 
   try {
     await CartAPI.remove(item.productId);
