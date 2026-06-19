@@ -51,5 +51,13 @@ const UserAPI = {
 
 // ── Payment ───────────────────────────────────────────────────────
 const PaymentAPI = {
-  createIntent: (d) => apiFetch("/payment/checkout", { method: "POST", auth: true, body: JSON.stringify(d) }),
+  createIntent: async (data) => {
+    const res = await fetch("/api/create-payment-intent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+
+    return res.json();
+  }
 };

@@ -239,6 +239,7 @@
         <h2>ORDER SUMMARY</h2>
         <div class="summary-row"><span>Subtotal</span><span id="cart-subtotal">$0.00</span></div>
         <div class="summary-row"><span>Shipping</span><span id="cart-shipping">Free</span></div>
+        <input id="guest-email" placeholder="Email address for receipt" />
         <div class="summary-row"><span>Tax (18%)</span><span id="cart-tax">$0.00</span></div>
         <div class="summary-row total"><span>Total</span><span id="cart-total">$0.00</span></div>
         <button class="btn-primary full-w" onclick="proceedToCheckout()">Checkout →</button>
@@ -384,6 +385,8 @@
 
 <!-- ── PAYMENT ────────────────────────────────────────── -->
 <div id="page-payment" class="page" style="display:none">
+  <div id="card-element"></div>
+  <div id="card-errors" style="color:red;margin-top:10px"></div>
   <div class="checkout-container">
     <div class="checkout-steps">
       <div class="cs done">1. Shipping ✓</div>

@@ -2,548 +2,212 @@
 // All data comes from AWS (DynamoDB via Lambda/API Gateway).
 // No hardcoded products, no localStorage for cart or orders.
 
-// ═══ STATE ════════════════════════════════════════════════════════
 let STATE = {
-  user:           null,
-  cart:           [],
-  shippingInfo:   JSON.parse(sessionStorage.getItem("rexony_shipping") || "null"),
-  products:       [],
-  allProducts:    [],
+  user: null,
+  cart: [],
+  shippingInfo: JSON.parse(sessionStorage.getItem("rexony_shipping") || "null"),
+  products: [],
+  allProducts: [],
   currentProduct: null,
-  currentPage:    "home",
-  minRating:      0,
-  selectedStars:  0,
+  currentPage: "home",
+  minRating: 0,
+  selectedStars: 0,
   currentOrderId: null,
-  adminSection:   "dashboard",
+  adminSection: "dashboard",
+  guest: {
+    email: sessionStorage.getItem("guest_email") || ""
+  }
 };
 
-// ═══ INIT ══════════════════════════════════════════════════════════
+let stripe = null;
+let cardElement = null;
+
+async function initStripe() {
+  if (window.Stripe) {
+    stripe = window.Stripe("pk_test_51Tiw89RfsQqBbUtKpgkwHqAYuTGjrweeBg3Qrs3LK2Cny0mBrn02fIaboY96W0UdQ9PpOy5Yz0xKPGlTWE5sM3j000meASJl8i");
+  }
+}
+
 window.addEventListener("load", async () => {
-  initCognito();
-  STATE.user = await loadUserFromSession();
-  updateHeaderAuth();
-  if (STATE.user) await loadCart();
-  updateCartBadge();
-  await loadHomeProducts();
-  setInterval(() => {
-    const el = document.getElementById("admin-date");
-    if (el) el.textContent = new Date().toLocaleDateString("en-US", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
-  }, 1000);
+  try {
+    if (typeof initCognito === "function") initCognito();
+    if (typeof initStripe === "function") initStripe();
+
+    STATE.user = await loadUserFromSession().catch(() => null);
+
+    updateHeaderAuth();
+
+    if (STATE.user) {
+      await loadCart().catch(() => {});
+    }
+
+    updateCartBadge();
+
+    await loadHomeProducts(); // 🔥 critical — keep this last
+
+    const guestCart = sessionStorage.getItem("guest_cart");
+    if (guestCart && !STATE.user) {
+      STATE.cart = JSON.parse(guestCart);
+      updateCartBadge();
+    }
+
+  } catch (err) {
+    console.error("INIT ERROR:", err);
+    // fallback so page still works
+    await loadHomeProducts();
+  }
 });
 
-// ═══ NAVIGATION ════════════════════════════════════════════════════
+// ─── NAVIGATION ───────────────────────────────────────────────
+
 function showPage(name) {
   document.querySelectorAll(".page").forEach(p => p.style.display = "none");
   const pg = document.getElementById(`page-${name}`);
   if (!pg) return;
+
   pg.style.display = "block";
   STATE.currentPage = name;
-  closeDropdowns();
+
   window.scrollTo(0, 0);
 
-  if (name === "shop")       loadShopProducts();
-  if (name === "cart")       renderCart();
-  if (name === "orders")     loadMyOrders();
-  if (name === "profile")    renderProfile();
-  if (name === "admin-dash") { if (!isAdmin()) { showPage("home"); return; } loadAdminDashboard(); }
-  if (name === "confirm")    renderConfirm();
-  if (name === "shipping" && !STATE.user) { showToast("Please log in to checkout", "error"); showPage("login"); return; }
-}
+  if (name === "shop") loadShopProducts();
+  if (name === "cart") renderCart();
+  if (name === "orders") loadMyOrders();
+  if (name === "profile") renderProfile();
 
-function filterByCategory(cat) {
-  showPage("shop");
-  document.getElementById("cat-filter").value = cat;
-  applyFilters();
-}
-
-// ═══ AUTH UI ═══════════════════════════════════════════════════════
-function updateHeaderAuth() {
-  const li = document.getElementById("ud-logged-in");
-  const lo = document.getElementById("ud-logged-out");
-  const al = document.getElementById("admin-link");
-  if (STATE.user) {
-    li.style.display = "block"; lo.style.display = "none";
-    if (al) al.style.display = isAdmin() ? "block" : "none";
-  } else {
-    li.style.display = "none"; lo.style.display = "block";
+  if (name === "payment") {
+    setTimeout(() => initStripeElements(), 300);
   }
 }
 
-function isAdmin() { return STATE.user && STATE.user.role === "admin"; }
-
-function toggleUserMenu() {
-  document.getElementById("user-dropdown").classList.toggle("open");
-}
-
-function closeDropdowns() {
-  document.getElementById("user-dropdown")?.classList.remove("open");
-}
-
-document.addEventListener("click", e => {
-  if (!e.target.closest("#user-icon-btn") && !e.target.closest("#user-dropdown")) closeDropdowns();
-});
-
-function toggleSearch() {
-  document.getElementById("search-bar").classList.toggle("open");
-  if (document.getElementById("search-bar").classList.contains("open")) document.getElementById("search-input").focus();
-}
-
-function toggleMobileNav() {}
-
-async function handleLogin() {
-  const email = document.getElementById("login-email").value.trim();
-  const pass  = document.getElementById("login-password").value;
-  const errEl = document.getElementById("login-error");
-  errEl.style.display = "none";
-  if (!email || !pass) { errEl.textContent = "Enter email and password."; errEl.style.display = "block"; return; }
-  try {
-    STATE.user = await cognitoLogin(email, pass);
-    updateHeaderAuth();
-    await loadCart();
-    updateCartBadge();
-    showToast(`Welcome back, ${STATE.user.name}!`, "success");
-    showPage("home");
-  } catch (e) { errEl.textContent = e; errEl.style.display = "block"; }
-}
-
-async function handleRegister() {
-  const name  = document.getElementById("reg-name").value.trim();
-  const email = document.getElementById("reg-email").value.trim();
-  const pass  = document.getElementById("reg-password").value;
-  const errEl = document.getElementById("reg-error");
-  errEl.style.display = "none";
-  if (!name || !email || !pass) { errEl.textContent = "All fields are required."; errEl.style.display = "block"; return; }
-  try {
-    const r = await cognitoRegister(name, email, pass);
-    STATE.user = await loadUserFromSession();
-    updateHeaderAuth();
-    if (STATE.user) await loadCart();
-    showToast(r.message, "success");
-    showPage("home");
-  } catch (e) { errEl.textContent = e; errEl.style.display = "block"; }
-}
-
-function logout() {
-  cognitoLogout();
-  STATE.user = null;
-  STATE.cart = [];
-  updateCartBadge();
-  updateHeaderAuth();
-  showToast("Logged out.", "success");
-  showPage("home");
-}
-
-function switchAuthTab(t) {
-  document.getElementById("login-form").style.display    = t === "login"    ? "block" : "none";
-  document.getElementById("register-form").style.display = t === "register" ? "block" : "none";
-  document.querySelectorAll(".auth-tab").forEach(el => el.classList.remove("active"));
-  document.getElementById(`${t}-tab`).classList.add("active");
-}
-
-async function sendResetCode() {
-  const email = document.getElementById("fp-email").value.trim();
-  if (!email) return showToast("Enter your email", "error");
-  try {
-    const msg = await cognitoForgotPassword(email);
-    sessionStorage.setItem("resetEmail", email);
-    document.getElementById("fp-send-section").style.display = "none";
-    document.getElementById("fp-code-section").style.display = "block";
-    showToast(msg, "success");
-  } catch (e) { showToast(e, "error"); }
-}
-
-async function resetPassword() {
-  const email   = sessionStorage.getItem("resetEmail") || "";
-  const code    = document.getElementById("fp-code").value.trim();
-  const newPass = document.getElementById("fp-new-pass").value;
-  try {
-    await cognitoResetPassword(email, code, newPass);
-    showToast("Password reset! Please log in.", "success");
-    showPage("login");
-  } catch (e) { showToast(e, "error"); }
-}
-
-// ═══ PRODUCTS ══════════════════════════════════════════════════════
-async function loadHomeProducts() {
-  const grid = document.getElementById("home-product-grid");
-  grid.innerHTML = `<div class="loader-ring"></div>`;
-  try {
-    const data = await ProductAPI.getAll();
-    STATE.allProducts = data.products || data.items || [];
-    if (!STATE.allProducts.length) {
-      grid.innerHTML = `<p style="color:var(--muted);grid-column:1/-1;text-align:center;padding:2rem">No products available yet.</p>`;
-      return;
-    }
-  } catch {
-    grid.innerHTML = `<p style="color:var(--muted);grid-column:1/-1;text-align:center;padding:2rem">Could not load products. Please try again later.</p>`;
-    return;
-  }
-  STATE.products = STATE.allProducts;
-  grid.innerHTML = STATE.products.slice(0, 8).map(productCard).join("");
-}
-
-async function loadShopProducts() {
-  const grid = document.getElementById("shop-product-grid");
-  grid.innerHTML = `<div class="loader-ring"></div>`;
-  try {
-    const data = await ProductAPI.getAll();
-    STATE.allProducts = data.products || data.items || [];
-  } catch {
-    grid.innerHTML = `<p style="color:var(--muted);grid-column:1/-1;text-align:center;padding:2rem">Could not load products. Please try again.</p>`;
-    return;
-  }
-  applyFilters();
-}
-
-function applyFilters() {
-  const cat    = document.getElementById("cat-filter")?.value || "";
-  const minP   = parseFloat(document.getElementById("price-min")?.value || 0);
-  const maxP   = parseFloat(document.getElementById("price-max")?.value || 99999);
-  const sort   = document.getElementById("sort-select")?.value || "";
-  let products = [...STATE.allProducts];
-  if (cat) products = products.filter(p => p.category === cat);
-  products = products.filter(p => (p.price || 0) >= minP && (p.price || 0) <= maxP);
-  if (STATE.minRating > 0) products = products.filter(p => (p.ratings || 0) >= STATE.minRating);
-  if (sort === "price-asc")  products.sort((a, b) => a.price - b.price);
-  if (sort === "price-desc") products.sort((a, b) => b.price - a.price);
-  if (sort === "rating")     products.sort((a, b) => (b.ratings || 0) - (a.ratings || 0));
-  STATE.products = products;
-  const grid = document.getElementById("shop-product-grid");
-  if (grid) {
-    document.getElementById("shop-count").textContent = `${products.length} product${products.length !== 1 ? "s" : ""}`;
-    grid.innerHTML = products.map(productCard).join("") || `<p style="color:var(--muted);grid-column:1/-1">No products match these filters.</p>`;
-  }
-  const hg = document.getElementById("home-product-grid");
-  if (hg && STATE.currentPage === "home") hg.innerHTML = STATE.products.slice(0, 8).map(productCard).join("");
-}
-
-function productCard(p) {
-  const id    = p.productId || p._id || "unknown";
-  const img   = (p.images && p.images[0]?.url) ? `<img src="${p.images[0].url}" alt="${p.name}" loading="lazy"/>` : `<span style="font-size:48px">${categoryEmoji(p.category)}</span>`;
-  const badge = p.Stock <= 5 && p.Stock > 0 ? `<span class="pc-badge">Low Stock</span>` : (p.Stock === 0 ? `<span class="pc-badge" style="background:var(--red)">Out of Stock</span>` : "");
-  const stars = renderStars(p.ratings || 0);
-  const inStock = (p.Stock || 0) > 0;
-  return `
-  <div class="product-card" onclick="openProduct('${id}')">
-    <div class="pc-img">${img}${badge}</div>
-    <div class="pc-body">
-      <div class="pc-cat">${p.category || "Product"}</div>
-      <div class="pc-name">${p.name}</div>
-      <div class="pc-rating">
-        <span class="stars-sm">${stars}</span>
-        <span class="pc-reviews">(${p.numOfReviews || p.reviews?.length || 0})</span>
-      </div>
-      <div class="pc-footer">
-        <span class="pc-price">$${(p.price || 0).toFixed(2)}</span>
-        ${inStock
-          ? `<button class="pc-add" onclick="event.stopPropagation();addToCartQuick('${id}')" title="Add to cart">+</button>`
-          : `<span class="out-of-stock">Out of stock</span>`}
-      </div>
-    </div>
-  </div>`;
-}
-
-async function openProduct(id) {
-  showPage("product");
-  try {
-    const data = await ProductAPI.getOne(id);
-    const p = data.product || data;
-    STATE.currentProduct = p;
-    STATE.selectedQty = 1;
-    document.getElementById("pd-cat").textContent    = p.category || "";
-    document.getElementById("pd-name").textContent   = p.name || "";
-    document.getElementById("pd-price").textContent  = `$${(p.price || 0).toFixed(2)}`;
-    document.getElementById("pd-desc").textContent   = p.description || "";
-    document.getElementById("pd-stars").innerHTML    = renderStars(p.ratings || 0);
-    document.getElementById("pd-reviews").textContent = `(${p.numOfReviews || p.reviews?.length || 0} reviews)`;
-    document.getElementById("pd-qty-val").textContent = "1";
-    const stock = p.Stock || p.stock || 0;
-    document.getElementById("pd-stock").innerHTML = stock > 0
-      ? `<span class="in-stock">✓ In Stock (${stock} available)</span>`
-      : `<span class="no-stock">✗ Out of Stock</span>`;
-    const imgEl = document.getElementById("pd-main-img");
-    imgEl.innerHTML = p.images?.[0]?.url
-      ? `<img src="${p.images[0].url}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover"/>`
-      : `<span style="font-size:80px">${categoryEmoji(p.category)}</span>`;
-    renderProductReviews(p.reviews || []);
-    document.getElementById("add-review-form").style.display = STATE.user ? "block" : "none";
-  } catch (e) {
-    showToast("Could not load product: " + e.message, "error");
-    showPage("shop");
-  }
-}
-
-function changeQty(d) {
-  const el  = document.getElementById("pd-qty-val");
-  const max = STATE.currentProduct?.Stock || 99;
-  let v = parseInt(el.textContent) + d;
-  if (v < 1) v = 1;
-  if (v > max) v = max;
-  el.textContent = v;
-  STATE.selectedQty = v;
-}
-
-function addToCartFromDetail() {
-  if (!STATE.currentProduct) return;
-  addToCart(STATE.currentProduct, STATE.selectedQty || 1);
-}
-
-function buyNow() {
-  addToCartFromDetail();
-  showPage("cart");
-}
-
-function renderProductReviews(reviews) {
-  const el = document.getElementById("reviews-list");
-  el.innerHTML = reviews.length === 0
-    ? `<p style="color:var(--muted)">No reviews yet. Be the first!</p>`
-    : reviews.map(r => `
-        <div class="review-card">
-          <div class="rc-header">
-            <span class="rc-user">${r.name || "User"}</span>
-            <span class="rc-stars">${renderStars(r.rating)}</span>
-          </div>
-          <p class="rc-comment">${r.comment}</p>
-        </div>`).join("");
-}
-
-function selectStar(n) {
-  STATE.selectedStars = n;
-  document.querySelectorAll("#star-select span").forEach((s, i) => s.classList.toggle("lit", i < n));
-}
-
-async function submitReview() {
-  if (!STATE.user) return showToast("Log in to submit a review", "error");
-  if (!STATE.selectedStars) return showToast("Select a star rating", "error");
-  const comment   = document.getElementById("review-comment").value.trim();
-  const productId = STATE.currentProduct?.productId || STATE.currentProduct?._id;
-  try {
-    await ProductAPI.addReview({ rating: STATE.selectedStars, comment, productId });
-    showToast("Review submitted!", "success");
-    document.getElementById("review-comment").value = "";
-    STATE.selectedStars = 0;
-    selectStar(0);
-    openProduct(productId);
-  } catch (e) { showToast(e.message, "error"); }
-}
-
-// ═══ SEARCH ════════════════════════════════════════════════════════
-function liveSearch() {
-  const q = document.getElementById("search-input").value.toLowerCase().trim();
-  if (!q) return;
-  const r = STATE.allProducts.filter(p => p.name.toLowerCase().includes(q) || (p.category || "").toLowerCase().includes(q));
-  STATE.products = r;
-  const hg = document.getElementById("home-product-grid");
-  if (hg && STATE.currentPage === "home") hg.innerHTML = r.slice(0, 8).map(productCard).join("") || `<p style="color:var(--muted);grid-column:1/-1">No results for "${q}"</p>`;
-}
-
-function doSearch() {
-  toggleSearch();
-  showPage("shop");
-  applyFilters();
-}
-
-function setMinRating(n) {
-  STATE.minRating = n;
-  document.querySelectorAll(".rf-star").forEach(s => s.classList.toggle("active", parseInt(s.dataset.r) === n));
-  applyFilters();
-}
-
-function clearFilters() {
-  document.getElementById("cat-filter").value  = "";
-  document.getElementById("price-min").value   = 0;
-  document.getElementById("price-max").value   = 5000;
-  document.getElementById("sort-select").value = "";
-  STATE.minRating = 0;
-  setMinRating(0);
-  updatePriceLabel();
-  applyFilters();
-}
-
-function updatePriceLabel() {
-  document.getElementById("price-min-lbl").textContent = "$" + document.getElementById("price-min").value;
-  document.getElementById("price-max-lbl").textContent = "$" + document.getElementById("price-max").value;
-}
-
-// ═══ CART ══════════════════════════════════════════════════════════
-async function loadCart() {
-  try {
-    const data  = await CartAPI.get();
-    STATE.cart  = data.items || data.cart || [];
-    updateCartBadge();
-  } catch {
-    STATE.cart = [];
-  }
-}
-
-async function addToCart(product, qty = 1) {
-  if (!STATE.user) { showToast("Please log in to add items to your cart", "error"); showPage("login"); return; }
-  const id  = product.productId || product._id;
-  const idx = STATE.cart.findIndex(i => i.productId === id);
-  // Optimistic update — update UI immediately
-  if (idx >= 0) STATE.cart[idx].quantity += qty;
-  else STATE.cart.push({ productId: id, name: product.name, price: product.price, image: product.images?.[0]?.url || "", quantity: qty, Stock: product.Stock });
-  updateCartBadge();
-  showToast(`${product.name} added to cart`, "success");
-  // Sync to DynamoDB in background
-  try {
-    await CartAPI.add({ productId: id, name: product.name, price: product.price, image: product.images?.[0]?.url || "", quantity: qty });
-  } catch (e) {
-    showToast("Cart sync failed — please try again", "error");
-  }
-}
-
-async function addToCartQuick(id) {
-  const p = STATE.allProducts.find(x => (x.productId || x._id) === id);
-  if (p) await addToCart(p, 1);
-}
-
-function updateCartBadge() {
-  const el = document.getElementById("cart-count");
-  if (el) el.textContent = STATE.cart.reduce((s, i) => s + i.quantity, 0);
-}
-
-function renderCart() {
-  const listEl  = document.getElementById("cart-items-list");
-  const summEl  = document.getElementById("cart-summary");
-  const emptyEl = document.getElementById("empty-cart");
-  if (STATE.cart.length === 0) { listEl.innerHTML = ""; listEl.appendChild(emptyEl); emptyEl.style.display = "block"; summEl.style.display = "none"; return; }
-  emptyEl.style.display = "none";
-  summEl.style.display  = "block";
-  listEl.innerHTML = STATE.cart.map((item, i) => `
-    <div class="cart-item">
-      <div class="ci-img">${item.image ? `<img src="${item.image}" alt="${item.name}" style="width:100%;height:100%;object-fit:cover;border-radius:6px"/>` : categoryEmoji("")}</div>
-      <div>
-        <div class="ci-name">${item.name}</div>
-        <div class="ci-price">$${(item.price * item.quantity).toFixed(2)}</div>
-        <div class="ci-controls">
-          <button class="ci-qty-btn" onclick="changeCartQty(${i},-1)">−</button>
-          <span class="ci-qty-val">${item.quantity}</span>
-          <button class="ci-qty-btn" onclick="changeCartQty(${i},1)">+</button>
-        </div>
-      </div>
-      <button class="ci-remove" onclick="removeFromCart(${i})" title="Remove">×</button>
-    </div>`).join("");
-  const sub      = STATE.cart.reduce((s, i) => s + i.price * i.quantity, 0);
-  const shipping = sub >= 99 ? 0 : 9.99;
-  const tax      = sub * 0.18;
-  const total    = sub + shipping + tax;
-  document.getElementById("cart-subtotal").textContent = `$${sub.toFixed(2)}`;
-  document.getElementById("cart-shipping").textContent = shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`;
-  document.getElementById("cart-tax").textContent      = `$${tax.toFixed(2)}`;
-  document.getElementById("cart-total").textContent    = `$${total.toFixed(2)}`;
-  sessionStorage.setItem("orderInfo", JSON.stringify({ subtotal: sub, shippingCharges: shipping, tax, totalPrice: total }));
-}
-
-async function changeCartQty(idx, d) {
-  const item = STATE.cart[idx];
-  STATE.cart[idx].quantity += d;
-  if (STATE.cart[idx].quantity <= 0) {
-    STATE.cart.splice(idx, 1);
-    updateCartBadge();
-    renderCart();
-    try { await CartAPI.remove(item.productId); } catch {}
-    return;
-  }
-  updateCartBadge();
-  renderCart();
-  try {
-    await CartAPI.update({ productId: item.productId, quantity: STATE.cart[idx]?.quantity });
-  } catch {}
-}
-
-async function removeFromCart(idx) {
-  const item = STATE.cart[idx];
-  STATE.cart.splice(idx, 1);
-  updateCartBadge();
-  renderCart();
-  try { await CartAPI.remove(item.productId); } catch (e) { showToast("Failed to remove item", "error"); }
-}
+// ─── CART ─────────────────────────────────────────────────────
 
 function proceedToCheckout() {
-  if (!STATE.user) { showToast("Please log in first", "error"); showPage("login"); return; }
   if (STATE.cart.length === 0) return;
+
   showPage("shipping");
+
   if (STATE.shippingInfo) {
     ["address","city","state","pin","phone"].forEach(f => {
       const el = document.getElementById(`ship-${f}`);
       if (el) el.value = STATE.shippingInfo[f] || "";
     });
-    const sc = document.getElementById("ship-country");
-    if (sc && STATE.shippingInfo.country) sc.value = STATE.shippingInfo.country;
   }
+
+  const emailEl = document.getElementById("guest-email");
+  if (emailEl) emailEl.value = STATE.guest.email || "";
 }
 
-// ═══ SHIPPING & CHECKOUT ══════════════════════════════════════════
-function proceedToConfirm() {
-  const si = {
-    address: document.getElementById("ship-address").value.trim(),
-    city:    document.getElementById("ship-city").value.trim(),
-    state:   document.getElementById("ship-state").value.trim(),
-    pinCode: document.getElementById("ship-pin").value.trim(),
-    country: document.getElementById("ship-country").value,
-    phoneNo: document.getElementById("ship-phone").value.trim(),
-  };
-  if (!si.address || !si.city || !si.pinCode) { showToast("Fill in all required fields", "error"); return; }
-  STATE.shippingInfo = si;
-  sessionStorage.setItem("rexony_shipping", JSON.stringify(si));
-  showPage("confirm");
-}
+// ─── PAYMENT ────────────────────────────────────────────────
 
-function renderConfirm() {
-  const si   = STATE.shippingInfo || {};
-  const info = JSON.parse(sessionStorage.getItem("orderInfo") || "{}");
-  document.getElementById("confirm-shipping-details").innerHTML = `
-    <div class="confirm-addr">
-      <strong>${STATE.user?.name || ""}</strong><br/>
-      ${si.address}<br/>${si.city}, ${si.state} ${si.pinCode}<br/>${si.country}<br/>${si.phoneNo || ""}
-    </div>`;
-  document.getElementById("confirm-items").innerHTML = STATE.cart.map(i =>
-    `<div class="confirm-item"><span>${i.name} × ${i.quantity}</span><span>$${(i.price * i.quantity).toFixed(2)}</span></div>`
-  ).join("");
-  document.getElementById("confirm-subtotal").textContent = `$${(info.subtotal || 0).toFixed(2)}`;
-  document.getElementById("confirm-ship").textContent     = info.shippingCharges === 0 ? "Free" : `$${(info.shippingCharges || 0).toFixed(2)}`;
-  document.getElementById("confirm-tax").textContent      = `$${(info.tax || 0).toFixed(2)}`;
-  document.getElementById("confirm-total").textContent    = `$${(info.totalPrice || 0).toFixed(2)}`;
-}
+function initStripeElements() {
+  if (!stripe) return;
 
-function proceedToPayment() {
-  const info = JSON.parse(sessionStorage.getItem("orderInfo") || "{}");
-  document.getElementById("pay-amount").textContent   = `$${(info.totalPrice || 0).toFixed(2)}`;
-  document.getElementById("payment-total").textContent = `$${(info.totalPrice || 0).toFixed(2)}`;
-  showPage("payment");
+  const elements = stripe.elements();
+
+  cardElement = elements.create("card", {
+    style: {
+      base: {
+        fontSize: "16px",
+        color: "#ffffff"
+      }
+    }
+  });
+
+  cardElement.mount("#card-element");
+
+  cardElement.on("change", (event) => {
+    document.getElementById("card-errors").textContent =
+      event.error ? event.error.message : "";
+  });
 }
 
 async function processPayment() {
   const btn = document.getElementById("pay-btn");
-  btn.disabled = true; btn.textContent = "Processing...";
+  btn.disabled = true;
+  btn.textContent = "Processing...";
+
   try {
     const info = JSON.parse(sessionStorage.getItem("orderInfo") || "{}");
-    // 1. Create Stripe payment intent
-    const payData     = await PaymentAPI.createIntent({ amount: Math.round((info.totalPrice || 0) * 100), items: STATE.cart });
-    const clientSecret = payData.client_secret;
-    // 2. Place order in DynamoDB
-    const order = await OrderAPI.place({
-      shippingInfo:  STATE.shippingInfo,
-      orderItems:    STATE.cart,
-      itemsPrice:    info.subtotal,
-      taxPrice:      info.tax,
-      shippingPrice: info.shippingCharges,
-      totalPrice:    info.totalPrice,
-      paymentInfo:   { id: clientSecret, status: "succeeded" },
+
+    const payData = await PaymentAPI.createIntent({
+      amount: Math.round((info.totalPrice || 0) * 100),
+      email: STATE.guest.email,
+      items: STATE.cart
     });
+
+    const clientSecret = payData.client_secret;
+
+    const result = await stripe.confirmCardPayment(clientSecret, {
+      payment_method: {
+        card: cardElement,
+        billing_details: {
+          email: STATE.guest.email
+        }
+      }
+    });
+
+    if (result.error) throw new Error(result.error.message);
+
+    const order = await OrderAPI.place({
+      guestEmail: STATE.guest.email,
+      shippingInfo: STATE.shippingInfo,
+      orderItems: STATE.cart,
+      itemsPrice: info.subtotal,
+      taxPrice: info.tax,
+      shippingPrice: info.shippingCharges,
+      totalPrice: info.totalPrice,
+      paymentInfo: {
+        id: result.paymentIntent.id,
+        status: result.paymentIntent.status
+      }
+    });
+
     STATE.currentOrderId = order.orderId || order._id;
-    // 3. Clear cart from DynamoDB and memory
-    await CartAPI.clear();
+
     STATE.cart = [];
+    sessionStorage.removeItem("guest_cart");
     updateCartBadge();
-    document.getElementById("success-order-id").textContent = STATE.currentOrderId;
+
+    document.getElementById("success-order-id").textContent =
+      STATE.currentOrderId;
+
     showPage("success");
+
   } catch (e) {
     showToast("Payment failed: " + e.message, "error");
     btn.disabled = false;
-    btn.textContent = `Pay ${document.getElementById("pay-amount").textContent}`;
+    btn.textContent = "Pay";
   }
+}
+
+let cardElement = null;
+
+function initStripeElements() {
+  if (!stripe) return;
+
+  const elements = stripe.elements();
+
+  cardElement = elements.create("card", {
+    style: {
+      base: {
+        fontSize: "16px",
+        color: "#ffffff",
+        "::placeholder": { color: "#aab7c4" }
+      }
+    }
+  });
+
+  cardElement.mount("#card-element");
+
+  cardElement.on("change", function (event) {
+    const displayError = document.getElementById("card-errors");
+    if (event.error) {
+      displayError.textContent = event.error.message;
+    } else {
+      displayError.textContent = "";
+    }
+  });
 }
 
 // ═══ MY ORDERS ═════════════════════════════════════════════════════
