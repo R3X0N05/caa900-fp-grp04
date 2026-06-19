@@ -427,17 +427,37 @@ async function loadCart() {
 }
 
 async function addToCart(product, qty = 1) {
-  if (!STATE.user) { showToast("Please log in to add items to your cart", "error"); showPage("login"); return; }
+  if (!STATE.user) {
+    showToast("Please log in to add items to your cart", "error");
+    showPage("login");
+    return;
+  }
+
   const id  = product.productId || product._id;
   const idx = STATE.cart.findIndex(i => i.productId === id);
-  // Optimistic update — update UI immediately
+
   if (idx >= 0) STATE.cart[idx].quantity += qty;
-  else STATE.cart.push({ productId: id, name: product.name, price: product.price, image: product.images?.[0]?.url || "", quantity: qty, Stock: product.Stock });
+  else STATE.cart.push({
+    productId: id,
+    name: product.name,
+    price: product.price,
+    image: product.images?.[0]?.url || "",
+    quantity: qty,
+    Stock: product.Stock
+  });
+
   updateCartBadge();
+  renderCart();
   showToast(`${product.name} added to cart`, "success");
-  // Sync to DynamoDB in background
+
   try {
-    await CartAPI.add({ productId: id, name: product.name, price: product.price, image: product.images?.[0]?.url || "", quantity: qty });
+    await CartAPI.add({
+      productId: id,
+      name: product.name,
+      price: product.price,
+      image: product.images?.[0]?.url || "",
+      quantity: qty
+    });
   } catch (e) {
     showToast("Cart sync failed — please try again", "error");
   }
@@ -500,24 +520,24 @@ async function changeCartQty(idx, d) {
   const item = STATE.cart[idx];
   if (!item) return;
 
-  const newQty = item.quantity + d;  // ← calculate first, before any mutation
+  STATE.cart[idx].quantity += d;
 
-  if (newQty <= 0) {
+  if (STATE.cart[idx].quantity <= 0) {
     STATE.cart.splice(idx, 1);
-    updateCartBadge();
-    renderCart();
-    if (!STATE.user) localStorage.setItem("rexony-guest-cart", JSON.stringify(STATE.cart));
-    try { await CartAPI.remove(item.productId); } catch {}
-    return;
   }
 
-  STATE.cart[idx].quantity = newQty;  // ← only mutate after the check
   updateCartBadge();
   renderCart();
-  if (!STATE.user) localStorage.setItem("rexony-guest-cart", JSON.stringify(STATE.cart));
 
   try {
-    await CartAPI.update({ productId: item.productId, quantity: newQty });  // ← use newQty directly
+    if (STATE.cart[idx]) {
+      await CartAPI.update({
+        productId: item.productId,
+        quantity: STATE.cart[idx].quantity
+      });
+    } else {
+      await CartAPI.remove(item.productId);
+    }
   } catch {}
 }
 
@@ -528,7 +548,6 @@ async function removeFromCart(idx) {
   STATE.cart.splice(idx, 1);
   updateCartBadge();
   renderCart();
-  if (!STATE.user) localStorage.setItem("rexony-guest-cart", JSON.stringify(STATE.cart));
 
   try {
     await CartAPI.remove(item.productId);
