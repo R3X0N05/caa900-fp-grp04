@@ -433,18 +433,26 @@ async function addToCart(product, qty = 1) {
     return;
   }
 
-  const id  = product.productId || product._id;
+  const id = product.productId || product._id;
   const idx = STATE.cart.findIndex(i => i.productId === id);
 
-  if (idx >= 0) STATE.cart[idx].quantity += qty;
-  else STATE.cart.push({
-    productId: id,
-    name: product.name,
-    price: product.price,
-    image: product.images?.[0]?.url || "",
-    quantity: qty,
-    Stock: product.Stock
-  });
+  if (idx >= 0) {
+    STATE.cart = STATE.cart.map((item, i) =>
+      i === idx ? { ...item, quantity: item.quantity + qty } : item
+    );
+  } else {
+    STATE.cart = [
+      ...STATE.cart,
+      {
+        productId: id,
+        name: product.name,
+        price: product.price,
+        image: product.images?.[0]?.url || "",
+        quantity: qty,
+        Stock: product.Stock
+      }
+    ];
+  }
 
   updateCartBadge();
   renderCart();
@@ -458,7 +466,7 @@ async function addToCart(product, qty = 1) {
       image: product.images?.[0]?.url || "",
       quantity: qty
     });
-  } catch (e) {
+  } catch {
     showToast("Cart sync failed — please try again", "error");
   }
 }
@@ -520,24 +528,22 @@ async function changeCartQty(idx, d) {
   const item = STATE.cart[idx];
   if (!item) return;
 
-  STATE.cart[idx].quantity += d;
+  const nextQty = item.quantity + d;
 
-  if (STATE.cart[idx].quantity <= 0) {
-    STATE.cart.splice(idx, 1);
+  if (nextQty <= 0) {
+    STATE.cart = STATE.cart.filter((_, i) => i !== idx);
+  } else {
+    STATE.cart = STATE.cart.map((it, i) =>
+      i === idx ? { ...it, quantity: nextQty } : it
+    );
   }
 
   updateCartBadge();
   renderCart();
 
   try {
-    if (STATE.cart[idx]) {
-      await CartAPI.update({
-        productId: item.productId,
-        quantity: STATE.cart[idx].quantity
-      });
-    } else {
-      await CartAPI.remove(item.productId);
-    }
+    if (nextQty <= 0) await CartAPI.remove(item.productId);
+    else await CartAPI.update({ productId: item.productId, quantity: nextQty });
   } catch {}
 }
 
@@ -545,13 +551,13 @@ async function removeFromCart(idx) {
   const item = STATE.cart[idx];
   if (!item) return;
 
-  STATE.cart.splice(idx, 1);
+  STATE.cart = STATE.cart.filter((_, i) => i !== idx);
   updateCartBadge();
   renderCart();
 
   try {
     await CartAPI.remove(item.productId);
-  } catch (e) {
+  } catch {
     showToast("Failed to remove item", "error");
   }
 }
