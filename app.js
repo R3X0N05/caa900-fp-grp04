@@ -500,9 +500,9 @@ async function changeCartQty(idx, d) {
   const item = STATE.cart[idx];
   if (!item) return;
 
-  STATE.cart[idx].quantity += d;
+  const newQty = item.quantity + d;  // ← calculate first, before any mutation
 
-  if (STATE.cart[idx].quantity <= 0) {
+  if (newQty <= 0) {
     STATE.cart.splice(idx, 1);
     updateCartBadge();
     renderCart();
@@ -511,12 +511,13 @@ async function changeCartQty(idx, d) {
     return;
   }
 
+  STATE.cart[idx].quantity = newQty;  // ← only mutate after the check
   updateCartBadge();
   renderCart();
   if (!STATE.user) localStorage.setItem("rexony-guest-cart", JSON.stringify(STATE.cart));
 
   try {
-    await CartAPI.update({ productId: item.productId, quantity: STATE.cart[idx].quantity });
+    await CartAPI.update({ productId: item.productId, quantity: newQty });  // ← use newQty directly
   } catch {}
 }
 
