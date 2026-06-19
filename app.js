@@ -457,7 +457,12 @@ async function removeFromCart(idx) {
   STATE.cart.splice(idx, 1);
   updateCartBadge();
   renderCart();
-  try { await CartAPI.remove(item.productId); } catch (e) { showToast("Failed to remove item", "error"); }
+  localStorage.setItem("rexony-guest-cart", JSON.stringify(STATE.cart));
+  try {
+    await CartAPI.remove(item.productId);
+  } catch (e) {
+    showToast("Failed to remove item", "error");
+  }
 }
 
 function proceedToCheckout() {
