@@ -63,12 +63,9 @@ async function loadUserFromSession() {
 
     if (!currentUser) return null;
 
-    return await new Promise((resolve) => {
+    return await new Promise((resolve, reject) => {
       currentUser.getSession((err, session) => {
-        if (err || !session || !session.isValid()) {
-          resolve(null);
-          return;
-        }
+        if (err || !session || !session.isValid()) return resolve(null);
 
         const payload = session.getIdToken().decodePayload();
         resolve({
@@ -462,15 +459,10 @@ function updateCartSummary() {
   const tax = sub * 0.18;
   const total = sub + shipping + tax;
 
-  const setText = (id, value) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value;
-  };
-
-  setText("cart-subtotal", `$${sub.toFixed(2)}`);
-  setText("cart-shipping", shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`);
-  setText("cart-tax", `$${tax.toFixed(2)}`);
-  setText("cart-total", `$${total.toFixed(2)}`);
+  document.getElementById("cart-subtotal").textContent = `$${sub.toFixed(2)}`;
+  document.getElementById("cart-shipping").textContent = shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`;
+  document.getElementById("cart-tax").textContent = `$${tax.toFixed(2)}`;
+  document.getElementById("cart-total").textContent = `$${total.toFixed(2)}`;
 
   sessionStorage.setItem("orderInfo", JSON.stringify({
     subtotal: sub,
@@ -484,19 +476,9 @@ function renderCart() {
   const listEl  = document.getElementById("cart-items-list");
   const summEl  = document.getElementById("cart-summary");
   const emptyEl = document.getElementById("empty-cart");
-
-  if (STATE.cart.length === 0) {
-    listEl.innerHTML = "";
-    listEl.appendChild(emptyEl);
-    emptyEl.style.display = "block";
-    summEl.style.display = "none";
-    updateCartSummary();
-    return;
-  }
-
+  if (STATE.cart.length === 0) { listEl.innerHTML = ""; listEl.appendChild(emptyEl); emptyEl.style.display = "block"; summEl.style.display = "none"; return; }
   emptyEl.style.display = "none";
-  summEl.style.display = "block";
-
+  summEl.style.display  = "block";
   listEl.innerHTML = STATE.cart.map((item, i) => `
     <div class="cart-item">
       <div class="ci-img">${item.image ? `<img src="${item.image}" alt="${item.name}" style="width:100%;height:100%;object-fit:cover;border-radius:6px"/>` : categoryEmoji("")}</div>
@@ -511,8 +493,7 @@ function renderCart() {
       </div>
       <button class="ci-remove" onclick="removeFromCart(${i})" title="Remove">×</button>
     </div>`).join("");
-
-  updateCartSummary();
+    updateCartSummary();
 }
 
 async function changeCartQty(idx, d) {
