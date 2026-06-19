@@ -434,11 +434,16 @@ async function addToCart(product, qty = 1) {
   }
 
   const id = product.productId || product._id;
+  if (!id) {
+    showToast("Missing product ID", "error");
+    return;
+  }
+
   const idx = STATE.cart.findIndex(i => i.productId === id);
 
   if (idx >= 0) {
     STATE.cart = STATE.cart.map((item, i) =>
-      i === idx ? { ...item, quantity: item.quantity + qty } : item
+      i === idx ? { ...item, quantity: (item.quantity || 0) + qty } : item
     );
   } else {
     STATE.cart = [
@@ -456,7 +461,6 @@ async function addToCart(product, qty = 1) {
 
   updateCartBadge();
   renderCart();
-  showToast(`${product.name} added to cart`, "success");
 
   try {
     await CartAPI.add({
@@ -466,7 +470,7 @@ async function addToCart(product, qty = 1) {
       image: product.images?.[0]?.url || "",
       quantity: qty
     });
-  } catch {
+  } catch (e) {
     showToast("Cart sync failed — please try again", "error");
   }
 }
@@ -528,7 +532,7 @@ async function changeCartQty(idx, d) {
   const item = STATE.cart[idx];
   if (!item) return;
 
-  const nextQty = item.quantity + d;
+  const nextQty = (item.quantity || 0) + d;
 
   if (nextQty <= 0) {
     STATE.cart = STATE.cart.filter((_, i) => i !== idx);
