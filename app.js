@@ -740,11 +740,14 @@ function renderConfirm() {
 }
 
 function proceedToPayment() {
-  const info = JSON.parse(sessionStorage.getItem("orderInfo") || "{}");
-  document.getElementById("pay-amount").textContent   = `$${(info.totalPrice || 0).toFixed(2)}`;
-  document.getElementById("payment-total").textContent = `$${(info.totalPrice || 0).toFixed(2)}`;
-  showPage("payment");
+  processPayment();
 }
+// function proceedToPayment() {
+//   const info = JSON.parse(sessionStorage.getItem("orderInfo") || "{}");
+//   document.getElementById("pay-amount").textContent   = `$${(info.totalPrice || 0).toFixed(2)}`;
+//   document.getElementById("payment-total").textContent = `$${(info.totalPrice || 0).toFixed(2)}`;
+//   showPage("payment");
+// }
 
 async function processPayment() {
   const btn = document.getElementById("pay-btn");
