@@ -40,6 +40,42 @@ window.addEventListener("load", async () => {
   renderCart();
   await loadHomeProducts();
 
+  // ── Handle Stripe redirect return ──────────────────────
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("payment") === "success") {
+    try {
+      const info        = JSON.parse(sessionStorage.getItem("orderInfo") || "{}");
+      const pendingCart = JSON.parse(sessionStorage.getItem("rexony_pending_cart") || "[]");
+      if (pendingCart.length > 0) {
+        await OrderAPI.place({
+          shippingInfo:  STATE.shippingInfo,
+          orderItems:    pendingCart,
+          itemsPrice:    info.subtotal,
+          taxPrice:      info.tax,
+          shippingPrice: info.shippingCharges,
+          totalPrice:    info.totalPrice,
+          paymentInfo:   { status: "succeeded" },
+        });
+        if (STATE.user) await CartAPI.clear();
+        STATE.cart = [];
+        localStorage.removeItem("rexony-guest-cart");
+        sessionStorage.removeItem("rexony_pending_cart");
+        sessionStorage.removeItem("orderInfo");
+        updateCartBadge();
+      }
+      showToast("Payment successful! Your order has been placed.", "success");
+    } catch (e) {
+      showToast("Order placement failed: " + e.message, "error");
+    }
+    window.history.replaceState({}, "", window.location.pathname);
+  }
+  if (params.get("payment") === "cancelled") {
+    showToast("Payment cancelled — your cart is still saved.", "info");
+    window.history.replaceState({}, "", window.location.pathname);
+    showPage("cart");
+  }
+  // ───────────────────────────────────────────────────────
+
   setInterval(() => {
     const el = document.getElementById("admin-date");
     if (el) el.textContent = new Date().toLocaleDateString("en-US", {
@@ -50,6 +86,7 @@ window.addEventListener("load", async () => {
     });
   }, 1000);
 });
+
 
 async function loadUserFromSession() {
   try {
@@ -97,7 +134,7 @@ function showPage(name) {
   if (name === "profile")    renderProfile();
   if (name === "admin-dash") { if (!isAdmin()) { showPage("home"); return; } loadAdminDashboard(); }
   if (name === "confirm")    renderConfirm();
-  if (name === "shipping" && !STATE.user) { showToast("Please log in to checkout", "error"); showPage("login"); return; }
+  // if (name === "shipping" && !STATE.user) { showToast("Please log in to checkout", "error"); showPage("login"); return; }
 }
 
 function filterByCategory(cat) {
@@ -150,7 +187,20 @@ async function handleLogin() {
     STATE.user = await cognitoLogin(email, pass);
     updateHeaderAuth();
     await loadCart();
+    const guestCart = JSON.parse(localStorage.getItem("rexony-guest-cart") || "[]");
+    if (guestCart.length > 0) {
+      for (const item of guestCart) {
+        const exists = STATE.cart.find(i => i.productId === item.productId);
+        if (!exists) {
+          await CartAPI.add({ productId: item.productId, name: item.name,
+                              price: item.price, image: item.image, quantity: item.quantity });
+          STATE.cart.push(item);
+        }
+      }
+      localStorage.removeItem("rexony-guest-cart");
+    }
     updateCartBadge();
+    renderCart();
     showToast(`Welcome back, ${STATE.user.name}!`, "success");
     showPage("home");
   } catch (e) { errEl.textContent = e; errEl.style.display = "block"; }
@@ -177,6 +227,7 @@ function logout() {
   cognitoLogout();
   STATE.user = null;
   STATE.cart = [];
+  localStorage.removeItem("rexony-guest-cart");  // ← add this
   updateCartBadge();
   updateHeaderAuth();
   showToast("Logged out.", "success");
@@ -427,53 +478,89 @@ async function loadCart() {
 }
 
 async function addToCart(product, qty = 1) {
-  if (!STATE.user) {
-    showToast("Please log in to add items to your cart", "error");
-    showPage("login");
-    return;
-  }
-
   const id = product.productId || product._id;
-  if (!id) {
-    showToast("Missing product ID", "error");
-    return;
-  }
+  if (!id) { showToast("Missing product ID", "error"); return; }
 
   const idx = STATE.cart.findIndex(i => i.productId === id);
-
   if (idx >= 0) {
     STATE.cart = STATE.cart.map((item, i) =>
       i === idx ? { ...item, quantity: (item.quantity || 0) + qty } : item
     );
   } else {
-    STATE.cart = [
-      ...STATE.cart,
-      {
-        productId: id,
-        name: product.name,
-        price: product.price,
-        image: product.images?.[0]?.url || "",
-        quantity: qty,
-        Stock: product.Stock
-      }
-    ];
+    STATE.cart = [...STATE.cart, {
+      productId: id,
+      name:      product.name,
+      price:     product.price,
+      image:     product.images?.[0]?.url || "",
+      quantity:  qty,
+      Stock:     product.Stock
+    }];
   }
 
   updateCartBadge();
   renderCart();
+  showToast(`${product.name} added to cart`, "success");
 
+  if (!STATE.user) {
+    localStorage.setItem("rexony-guest-cart", JSON.stringify(STATE.cart));
+    return;
+  }
   try {
-    await CartAPI.add({
-      productId: id,
-      name: product.name,
-      price: product.price,
-      image: product.images?.[0]?.url || "",
-      quantity: qty
-    });
+    await CartAPI.add({ productId: id, name: product.name, price: product.price,
+                        image: product.images?.[0]?.url || "", quantity: qty });
   } catch (e) {
     showToast("Cart sync failed — please try again", "error");
   }
 }
+
+// async function addToCart(product, qty = 1) {
+//   if (!STATE.user) {
+//     showToast("Please log in to add items to your cart", "error");
+//     showPage("login");
+//     return;
+//   }
+
+//   const id = product.productId || product._id;
+//   if (!id) {
+//     showToast("Missing product ID", "error");
+//     return;
+//   }
+
+//   const idx = STATE.cart.findIndex(i => i.productId === id);
+
+//   if (idx >= 0) {
+//     STATE.cart = STATE.cart.map((item, i) =>
+//       i === idx ? { ...item, quantity: (item.quantity || 0) + qty } : item
+//     );
+//   } else {
+//     STATE.cart = [
+//       ...STATE.cart,
+//       {
+//         productId: id,
+//         name: product.name,
+//         price: product.price,
+//         image: product.images?.[0]?.url || "",
+//         quantity: qty,
+//         Stock: product.Stock
+//       }
+//     ];
+//   }
+
+//   updateCartBadge();
+//   renderCart();
+
+//   try {
+//     await CartAPI.add({
+//       productId: id,
+//       name: product.name,
+//       price: product.price,
+//       image: product.images?.[0]?.url || "",
+//       quantity: qty
+//     });
+//   } catch (e) {
+//     showToast("Cart sync failed — please try again", "error");
+//   }
+// }
 
 async function addToCartQuick(id) {
   const p = STATE.allProducts.find(x => (x.productId || x._id) === id);
@@ -583,8 +670,17 @@ async function removeFromCart(idx) {
 }
 
 function proceedToCheckout() {
-  if (!STATE.user) { showToast("Please log in first", "error"); showPage("login"); return; }
   if (STATE.cart.length === 0) return;
+  if (!STATE.user) {
+    showModal(`
+      <h3 style="margin-bottom:12px">Sign in to Checkout</h3>
+      <p style="color:var(--muted);margin-bottom:20px">Your cart is saved. Log in to complete your purchase.</p>
+      <div style="display:flex;gap:10px">
+        <button class="btn-primary" onclick="closeModal();showPage('login')">Log In</button>
+        <button class="btn-ghost" onclick="closeModal();showPage('register')">Register</button>
+      </div>`);
+    return;
+  }
   showPage("shipping");
   if (STATE.shippingInfo) {
     ["address","city","state","pin","phone"].forEach(f => {
@@ -595,6 +691,20 @@ function proceedToCheckout() {
     if (sc && STATE.shippingInfo.country) sc.value = STATE.shippingInfo.country;
   }
 }
+
+// function proceedToCheckout() {
+//   if (!STATE.user) { showToast("Please log in first", "error"); showPage("login"); return; }
+//   if (STATE.cart.length === 0) return;
+//   showPage("shipping");
+//   if (STATE.shippingInfo) {
+//     ["address","city","state","pin","phone"].forEach(f => {
+//       const el = document.getElementById(`ship-${f}`);
+//       if (el) el.value = STATE.shippingInfo[f] || "";
+//     });
+//     const sc = document.getElementById("ship-country");
+//     if (sc && STATE.shippingInfo.country) sc.value = STATE.shippingInfo.country;
+//   }
+// }
 
 // ═══ SHIPPING & CHECKOUT ══════════════════════════════════════════
 function proceedToConfirm() {
@@ -638,29 +748,17 @@ function proceedToPayment() {
 
 async function processPayment() {
   const btn = document.getElementById("pay-btn");
-  btn.disabled = true; btn.textContent = "Processing...";
+  btn.disabled = true;
+  btn.textContent = "Redirecting to Stripe...";
   try {
     const info = JSON.parse(sessionStorage.getItem("orderInfo") || "{}");
-    // 1. Create Stripe payment intent
-    const payData     = await PaymentAPI.createIntent({ amount: Math.round((info.totalPrice || 0) * 100), items: STATE.cart });
-    const clientSecret = payData.client_secret;
-    // 2. Place order in DynamoDB
-    const order = await OrderAPI.place({
-      shippingInfo:  STATE.shippingInfo,
-      orderItems:    STATE.cart,
-      itemsPrice:    info.subtotal,
-      taxPrice:      info.tax,
-      shippingPrice: info.shippingCharges,
-      totalPrice:    info.totalPrice,
-      paymentInfo:   { id: clientSecret, status: "succeeded" },
+    sessionStorage.setItem("rexony_pending_cart", JSON.stringify(STATE.cart));
+    const payData = await PaymentAPI.createIntent({
+      email:  STATE.user?.email,
+      items:  STATE.cart,
+      amount: Math.round((info.totalPrice || 0) * 100),
     });
-    STATE.currentOrderId = order.orderId || order._id;
-    // 3. Clear cart from DynamoDB and memory
-    await CartAPI.clear();
-    STATE.cart = [];
-    updateCartBadge();
-    document.getElementById("success-order-id").textContent = STATE.currentOrderId;
-    showPage("success");
+    window.location.href = payData.url;
   } catch (e) {
     showToast("Payment failed: " + e.message, "error");
     btn.disabled = false;
