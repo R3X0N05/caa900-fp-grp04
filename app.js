@@ -210,9 +210,12 @@ async function handleRegister() {
   const name  = document.getElementById("reg-name").value.trim();
   const email = document.getElementById("reg-email").value.trim();
   const pass  = document.getElementById("reg-password").value;
+  const confirmPassword = document.getElementById("confirm-password").value;
   const errEl = document.getElementById("reg-error");
   errEl.style.display = "none";
-  if (!name || !email || !pass) { errEl.textContent = "All fields are required."; errEl.style.display = "block"; return; }
+  if (!name || !email || !pass || !confirmPassword) { errEl.textContent = "All fields are required."; errEl.style.display = "block"; return; }
+  if (password !== confirmPassword) { errorDiv.textContent = "Passwords do not match."; errorDiv.style.display = "block"; return; }
+
   try {
     const r = await cognitoRegister(name, email, pass);
     STATE.user = await loadUserFromSession();
