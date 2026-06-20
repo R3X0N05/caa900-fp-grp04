@@ -114,7 +114,7 @@ async function handleRegister() {
   const errEl = document.getElementById("reg-error");
   errEl.style.display = "none";
   if (!name || !email || !pass || !confirmPassword) { errEl.textContent = "All fields are required."; errEl.style.display = "block"; return; }
-  if (password !== confirmPassword) { errorDiv.textContent = "Passwords do not match."; errorDiv.style.display = "block"; return; }
+  if (password !== confirmPassword) { errEl.textContent = "Passwords do not match."; errEl.style.display = "block"; return; }
 
   try {
     const r = await cognitoRegister(name, email, pass);
