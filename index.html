@@ -273,11 +273,38 @@
         <p class="auth-sub">Join thousands of Rexony customers</p>
         <div class="form-group"><label>Full Name</label><input type="text" id="reg-name" placeholder="John Doe"/></div>
         <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="you@example.com"/></div>
-        <div class="form-group"><label>Password</label><input type="password" id="reg-password" placeholder="Min 8 characters"/></div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="reg-password" placeholder="Min 8 characters" oninput="checkPasswordStrength(this.value)"/>
+          <div class="pw-requirements" id="pw-requirements">
+            <div class="pw-req" id="req-length">✗ At least 8 characters</div>
+            <div class="pw-req" id="req-upper">✗ One uppercase letter</div>
+            <div class="pw-req" id="req-lower">✗ One lowercase letter</div>
+            <div class="pw-req" id="req-number">✗ One number</div>
+            <div class="pw-req" id="req-special">✗ One special character (!@#$%^&*)</div>
+          </div>
+        </div>
         <div class="form-group"><label>Confirm Password</label><input type="password" id="confirm-password" placeholder="Confirm Password"/></div>
         <div id="reg-error" class="form-error" style="display:none"></div>
         <button class="btn-primary full-w" onclick="handleRegister()">Create Account</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── VERIFY EMAIL ──────────────────────────────────────── -->
+<div id="page-verify" class="page" style="display:none">
+  <div class="auth-container">
+    <div class="auth-card">
+      <h2>Verify Your Email</h2>
+      <p class="auth-sub">Enter the 6-digit code sent to your email address.</p>
+      <div class="form-group">
+        <label>Verification Code</label>
+        <input type="text" id="verify-code" placeholder="6-digit code" maxlength="6"/>
+      </div>
+      <div id="verify-error" class="form-error" style="display:none"></div>
+      <button class="btn-primary full-w" onclick="handleVerify()">Verify Account</button>
+      <button class="btn-ghost full-w" onclick="resendVerificationCode()" style="margin-top:10px">Resend Code</button>
     </div>
   </div>
 </div>
@@ -451,6 +478,22 @@
       <div id="fp-send-section">
         <button class="btn-primary full-w" onclick="sendResetCode()">Send Verification Code</button>
       </div>
+      <!-- ── VERIFY EMAIL ──────────────────────────────────────── -->
+<div id="page-verify" class="page" style="display:none">
+  <div class="auth-container">
+    <div class="auth-card">
+      <h2>Verify Your Email</h2>
+      <p class="auth-sub">Enter the 6-digit code sent to your email address.</p>
+      <div class="form-group">
+        <label>Verification Code</label>
+        <input type="text" id="verify-code" placeholder="6-digit code" maxlength="6"/>
+      </div>
+      <div id="verify-error" class="form-error" style="display:none"></div>
+      <button class="btn-primary full-w" onclick="handleVerify()">Verify Account</button>
+      <button class="btn-ghost full-w" onclick="resendVerificationCode()" style="margin-top:10px">Resend Code</button>
+    </div>
+  </div>
+</div>
       <div id="fp-code-section" style="display:none">
         <div class="form-group"><label>Verification Code</label><input type="text" id="fp-code" placeholder="6-digit code from email"/></div>
         <div class="form-group"><label>New Password</label><input type="password" id="fp-new-pass" placeholder="Min 8 characters"/></div>

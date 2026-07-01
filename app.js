@@ -40,12 +40,22 @@ window.addEventListener("load", async () => {
   renderCart();
   await loadHomeProducts();
 
-  // ── Handle Stripe redirect return ──────────────────────
+// ── Handle Stripe redirect return ──────────────────────
   const params = new URLSearchParams(window.location.search);
   if (params.get("payment") === "success") {
+    if (!STATE.user) {
+      await new Promise(r => setTimeout(r, 1500));
+      STATE.user = await loadUserFromSession();
+      updateHeaderAuth();
+    }
+    const token = await getJwtToken();
+    console.log("Token after redirect:", token);
+    console.log("User after redirect:", STATE.user);
     try {
       const info        = JSON.parse(sessionStorage.getItem("orderInfo") || "{}");
       const pendingCart = JSON.parse(sessionStorage.getItem("rexony_pending_cart") || "[]");
+      console.log("pendingCart:", pendingCart);
+      console.log("orderInfo:", info);
       if (pendingCart.length > 0) {
         await OrderAPI.place({
           shippingInfo:  STATE.shippingInfo,
@@ -60,6 +70,8 @@ window.addEventListener("load", async () => {
         STATE.cart = [];
         localStorage.removeItem("rexony-guest-cart");
         sessionStorage.removeItem("rexony_pending_cart");
+        sessionStorage.removeItem("rexony_pending_shipping");
+        sessionStorage.removeItem("rexony_auth_token");
         sessionStorage.removeItem("orderInfo");
         updateCartBadge();
       }
@@ -215,15 +227,34 @@ async function handleRegister() {
   errEl.style.display = "none";
   if (!name || !email || !pass || !confirmPassword) { errEl.textContent = "All fields are required."; errEl.style.display = "block"; return; }
   if (pass !== confirmPassword) { errEl.textContent = "Passwords do not match."; errEl.style.display = "block"; return; }
-
   try {
-    const r = await cognitoRegister(name, email, pass);
-    STATE.user = await loadUserFromSession();
-    updateHeaderAuth();
-    if (STATE.user) await loadCart();
-    showToast(r.message, "success");
-    showPage("home");
+    await cognitoRegister(name, email, pass);
+    sessionStorage.setItem("pendingVerifyEmail", email);
+    showToast("Account created! Check your email for the verification code.", "success");
+    showPage("verify");  // go to verify page
   } catch (e) { errEl.textContent = e; errEl.style.display = "block"; }
+}
+
+async function handleVerify() {
+  const email = sessionStorage.getItem("pendingVerifyEmail");
+  const code  = document.getElementById("verify-code").value.trim();
+  const errEl = document.getElementById("verify-error");
+  errEl.style.display = "none";
+  if (!code) { errEl.textContent = "Enter the verification code."; errEl.style.display = "block"; return; }
+  try {
+    await cognitoVerify(email, code);
+    showToast("Email verified! You can now log in.", "success");
+    sessionStorage.removeItem("pendingVerifyEmail");
+    showPage("login");
+  } catch (e) { errEl.textContent = e; errEl.style.display = "block"; }
+}
+
+async function resendVerificationCode() {
+  const email = sessionStorage.getItem("pendingVerifyEmail");
+  try {
+    await cognitoResendCode(email);
+    showToast("Code resent — check your email.", "success");
+  } catch (e) { showToast(e, "error"); }
 }
 
 function logout() {
@@ -754,11 +785,13 @@ function proceedToPayment() {
 
 async function processPayment() {
   const btn = document.getElementById("pay-btn");
-  btn.disabled = true;
-  btn.textContent = "Redirecting to Stripe...";
+  if (btn) { btn.disabled = true; btn.textContent = "Redirecting to Stripe..."; }
   try {
     const info = JSON.parse(sessionStorage.getItem("orderInfo") || "{}");
     sessionStorage.setItem("rexony_pending_cart", JSON.stringify(STATE.cart));
+    sessionStorage.setItem("rexony_pending_shipping", JSON.stringify(STATE.shippingInfo || {}));
+    const token = await getJwtToken();
+    if (token) sessionStorage.setItem("rexony_auth_token", token);
     const payData = await PaymentAPI.createIntent({
       email:  STATE.user?.email,
       items:  STATE.cart,
@@ -767,8 +800,7 @@ async function processPayment() {
     window.location.href = payData.url;
   } catch (e) {
     showToast("Payment failed: " + e.message, "error");
-    btn.disabled = false;
-    btn.textContent = `Pay ${document.getElementById("pay-amount").textContent}`;
+    if (btn) { btn.disabled = false; btn.textContent = "Pay Now"; }
   }
 }
 
