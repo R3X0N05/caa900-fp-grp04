@@ -22,7 +22,7 @@ function getJwtToken() {
 }
 
 async function getAuthHeaders() {
-  const t = await getJwtToken();
+  const t = await getJwtToken() || sessionStorage.getItem("rexony_auth_token");
   return { "Content-Type": "application/json", ...(t ? { Authorization: t } : {}) };
 }
 

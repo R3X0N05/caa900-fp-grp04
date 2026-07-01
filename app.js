@@ -70,6 +70,8 @@ window.addEventListener("load", async () => {
         STATE.cart = [];
         localStorage.removeItem("rexony-guest-cart");
         sessionStorage.removeItem("rexony_pending_cart");
+        sessionStorage.removeItem("rexony_pending_shipping");
+        sessionStorage.removeItem("rexony_auth_token");
         sessionStorage.removeItem("orderInfo");
         updateCartBadge();
       }
@@ -786,7 +788,9 @@ async function processPayment() {
   if (btn) { btn.disabled = true; btn.textContent = "Redirecting to Stripe..."; }
   try {
     const info = JSON.parse(sessionStorage.getItem("orderInfo") || "{}");
-    sessionStorage.setItem("rexony_pending_cart", JSON.stringify(STATE.cart));
+    sessionStorage.setItem("rexony_pending_shipping", JSON.stringify(STATE.shippingInfo || {}));
+    const token = await getJwtToken();
+    if (token) sessionStorage.setItem("rexony_auth_token", token);
     const payData = await PaymentAPI.createIntent({
       email:  STATE.user?.email,
       items:  STATE.cart,
