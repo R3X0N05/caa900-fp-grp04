@@ -781,8 +781,7 @@ function proceedToPayment() {
 
 async function processPayment() {
   const btn = document.getElementById("pay-btn");
-  btn.disabled = true;
-  btn.textContent = "Redirecting to Stripe...";
+  if (btn) { btn.disabled = true; btn.textContent = "Redirecting to Stripe..."; }
   try {
     const info = JSON.parse(sessionStorage.getItem("orderInfo") || "{}");
     sessionStorage.setItem("rexony_pending_cart", JSON.stringify(STATE.cart));
@@ -794,8 +793,7 @@ async function processPayment() {
     window.location.href = payData.url;
   } catch (e) {
     showToast("Payment failed: " + e.message, "error");
-    btn.disabled = false;
-    btn.textContent = `Pay ${document.getElementById("pay-amount").textContent}`;
+    if (btn) { btn.disabled = false; btn.textContent = "Pay Now"; }
   }
 }
 
