@@ -40,20 +40,22 @@ window.addEventListener("load", async () => {
   renderCart();
   await loadHomeProducts();
 
-  // ── Handle Stripe redirect return ──────────────────────
+// ── Handle Stripe redirect return ──────────────────────
   const params = new URLSearchParams(window.location.search);
   if (params.get("payment") === "success") {
     if (!STATE.user) {
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 1500));
       STATE.user = await loadUserFromSession();
       updateHeaderAuth();
     }
     const token = await getJwtToken();
     console.log("Token after redirect:", token);
-
+    console.log("User after redirect:", STATE.user);
     try {
       const info        = JSON.parse(sessionStorage.getItem("orderInfo") || "{}");
       const pendingCart = JSON.parse(sessionStorage.getItem("rexony_pending_cart") || "[]");
+      console.log("pendingCart:", pendingCart);
+      console.log("orderInfo:", info);
       if (pendingCart.length > 0) {
         await OrderAPI.place({
           shippingInfo:  STATE.shippingInfo,
