@@ -111,3 +111,25 @@ function loginWithCognito() {
   const p = new URLSearchParams({ client_id: AWS_CONFIG.CLIENT_ID, response_type: "token", scope: "email openid profile", redirect_uri: window.location.origin });
   window.location.href = `${AWS_CONFIG.COGNITO_DOMAIN}/login?${p}`;
 }
+
+function cognitoVerify(email, code) {
+  return new Promise((res, rej) => {
+    if (!_pool) return res(true); // demo mode skip
+    const u = new AmazonCognitoIdentity.CognitoUser({ Username: email, Pool: _pool });
+    u.confirmRegistration(code, true, (err) => {
+      if (err) return rej(err.message || "Invalid code");
+      res(true);
+    });
+  });
+}
+
+function cognitoResendCode(email) {
+  return new Promise((res, rej) => {
+    if (!_pool) return res(true);
+    const u = new AmazonCognitoIdentity.CognitoUser({ Username: email, Pool: _pool });
+    u.resendConfirmationCode((err) => {
+      if (err) return rej(err.message);
+      res(true);
+    });
+  });
+}

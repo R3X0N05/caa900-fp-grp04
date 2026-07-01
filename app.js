@@ -215,15 +215,34 @@ async function handleRegister() {
   errEl.style.display = "none";
   if (!name || !email || !pass || !confirmPassword) { errEl.textContent = "All fields are required."; errEl.style.display = "block"; return; }
   if (pass !== confirmPassword) { errEl.textContent = "Passwords do not match."; errEl.style.display = "block"; return; }
-
   try {
-    const r = await cognitoRegister(name, email, pass);
-    STATE.user = await loadUserFromSession();
-    updateHeaderAuth();
-    if (STATE.user) await loadCart();
-    showToast(r.message, "success");
-    showPage("home");
+    await cognitoRegister(name, email, pass);
+    sessionStorage.setItem("pendingVerifyEmail", email);
+    showToast("Account created! Check your email for the verification code.", "success");
+    showPage("verify");  // go to verify page
   } catch (e) { errEl.textContent = e; errEl.style.display = "block"; }
+}
+
+async function handleVerify() {
+  const email = sessionStorage.getItem("pendingVerifyEmail");
+  const code  = document.getElementById("verify-code").value.trim();
+  const errEl = document.getElementById("verify-error");
+  errEl.style.display = "none";
+  if (!code) { errEl.textContent = "Enter the verification code."; errEl.style.display = "block"; return; }
+  try {
+    await cognitoVerify(email, code);
+    showToast("Email verified! You can now log in.", "success");
+    sessionStorage.removeItem("pendingVerifyEmail");
+    showPage("login");
+  } catch (e) { errEl.textContent = e; errEl.style.display = "block"; }
+}
+
+async function resendVerificationCode() {
+  const email = sessionStorage.getItem("pendingVerifyEmail");
+  try {
+    await cognitoResendCode(email);
+    showToast("Code resent — check your email.", "success");
+  } catch (e) { showToast(e, "error"); }
 }
 
 function logout() {
