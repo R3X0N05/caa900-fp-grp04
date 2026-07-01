@@ -43,6 +43,10 @@ window.addEventListener("load", async () => {
   // ── Handle Stripe redirect return ──────────────────────
   const params = new URLSearchParams(window.location.search);
   if (params.get("payment") === "success") {
+    if (!STATE.user) {
+      STATE.user = await loadUserFromSession();
+      updateHeaderAuth();
+    }
     try {
       const info        = JSON.parse(sessionStorage.getItem("orderInfo") || "{}");
       const pendingCart = JSON.parse(sessionStorage.getItem("rexony_pending_cart") || "[]");
