@@ -788,6 +788,7 @@ async function processPayment() {
   if (btn) { btn.disabled = true; btn.textContent = "Redirecting to Stripe..."; }
   try {
     const info = JSON.parse(sessionStorage.getItem("orderInfo") || "{}");
+    sessionStorage.setItem("rexony_pending_cart", JSON.stringify(STATE.cart));
     sessionStorage.setItem("rexony_pending_shipping", JSON.stringify(STATE.shippingInfo || {}));
     const token = await getJwtToken();
     if (token) sessionStorage.setItem("rexony_auth_token", token);
