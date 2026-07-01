@@ -44,9 +44,13 @@ window.addEventListener("load", async () => {
   const params = new URLSearchParams(window.location.search);
   if (params.get("payment") === "success") {
     if (!STATE.user) {
+      await new Promise(r => setTimeout(r, 500));
       STATE.user = await loadUserFromSession();
       updateHeaderAuth();
     }
+    const token = await getJwtToken();
+    console.log("Token after redirect:", token);
+
     try {
       const info        = JSON.parse(sessionStorage.getItem("orderInfo") || "{}");
       const pendingCart = JSON.parse(sessionStorage.getItem("rexony_pending_cart") || "[]");
