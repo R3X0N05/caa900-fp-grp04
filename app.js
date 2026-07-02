@@ -48,14 +48,9 @@ window.addEventListener("load", async () => {
       STATE.user = await loadUserFromSession();
       updateHeaderAuth();
     }
-    const token = await getJwtToken();
-    console.log("Token after redirect:", token);
-    console.log("User after redirect:", STATE.user);
     try {
       const info        = JSON.parse(sessionStorage.getItem("orderInfo") || "{}");
       const pendingCart = JSON.parse(sessionStorage.getItem("rexony_pending_cart") || "[]");
-      console.log("pendingCart:", pendingCart);
-      console.log("orderInfo:", info);
       if (pendingCart.length > 0) {
         await OrderAPI.place({
           shippingInfo:  STATE.shippingInfo,
