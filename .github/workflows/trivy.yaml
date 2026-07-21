@@ -2,6 +2,7 @@ name: Trivy Security Scan
 
 permissions:
   contents: read
+  actions: read
   security-events: write
 
 on:
