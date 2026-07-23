@@ -21,6 +21,12 @@ export const handler = async (event) => {
       return { statusCode: 200, headers: H, body: JSON.stringify({ products: Items }) };
     }
 
+    // GET /admin/products
+    if (method === "GET" && path === "/admin/products") {
+      const { Items } = await db.send(new ScanCommand({ TableName: TABLE }));
+      return { statusCode: 200, headers: H, body: JSON.stringify({ products: Items }) };
+    }
+
     // GET /product/{id}
     if (method === "GET" && path.startsWith("/product/") && id) {
       const { Item } = await db.send(new GetCommand({ TableName: TABLE, Key: { productId: id } }));

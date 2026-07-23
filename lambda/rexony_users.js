@@ -4,7 +4,7 @@ import { CognitoIdentityProviderClient, ListUsersCommand,
   AdminDeleteUserCommand } from "@aws-sdk/client-cognito-identity-provider";
 
 const cognito   = new CognitoIdentityProviderClient({ region: "us-east-1" });
-const USER_POOL = "us-east-1_Lw2Xpo4ll";
+const USER_POOL = process.env.USER_POOL_ID || "us-east-1_Lw2Xpo4ll";
 const H         = { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" };
 
 function parseJwt(token) {
