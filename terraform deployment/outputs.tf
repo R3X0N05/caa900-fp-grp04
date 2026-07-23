@@ -18,11 +18,6 @@ output "cognito_client_id" {
   value       = aws_cognito_user_pool_client.web.id
 }
 
-output "amplify_app_url" {
-  description = "Amplify hosting URL"
-  value       = "https://${aws_amplify_branch.main.branch_name}.${aws_amplify_app.main.id}.amplifyapp.com"
-}
-
 output "cloudfront_cdn_url" {
   description = "CloudFront CDN URL for product images"
   value       = "https://${aws_cloudfront_distribution.product_images.domain_name}"

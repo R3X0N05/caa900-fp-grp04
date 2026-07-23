@@ -12,8 +12,17 @@
 # ─── rexony-products ─────────────────────────────────────────────
 data "archive_file" "products" {
   type        = "zip"
-  source_file = "${var.lambda_source_dir}/rexony_products.js"
   output_path = "${local.build_dir}/rexony_products.zip"
+
+  source {
+    content  = file("${var.lambda_source_dir}/rexony_products.js")
+    filename = "rexony_products.js"
+  }
+
+  source {
+    content  = "{\"type\": \"module\"}"
+    filename = "package.json"
+  }
 }
 
 resource "aws_lambda_function" "products" {
@@ -45,9 +54,19 @@ resource "aws_cloudwatch_log_group" "products" {
 # ─── rexony-orders ───────────────────────────────────────────────
 data "archive_file" "orders" {
   type        = "zip"
-  source_file = "${var.lambda_source_dir}/rexony_orders.js"
   output_path = "${local.build_dir}/rexony_orders.zip"
+
+  source {
+    content  = file("${var.lambda_source_dir}/rexony_orders.js")
+    filename = "rexony_orders.js"
+  }
+
+  source {
+    content  = "{\"type\": \"module\"}"
+    filename = "package.json"
+  }
 }
+
 
 resource "aws_lambda_function" "orders" {
   function_name    = "rexony-orders"
@@ -78,8 +97,17 @@ resource "aws_cloudwatch_log_group" "orders" {
 # ─── rexony-cart ─────────────────────────────────────────────────
 data "archive_file" "cart" {
   type        = "zip"
-  source_file = "${var.lambda_source_dir}/rexony_cart.js"
   output_path = "${local.build_dir}/rexony_cart.zip"
+
+  source {
+    content  = file("${var.lambda_source_dir}/rexony_cart.js")
+    filename = "rexony_cart.js"
+  }
+
+  source {
+    content  = "{\"type\": \"module\"}"
+    filename = "package.json"
+  }
 }
 
 resource "aws_lambda_function" "cart" {
@@ -111,8 +139,17 @@ resource "aws_cloudwatch_log_group" "cart" {
 # ─── rexony-payment (runs inside VPC private subnet) ─────────────
 data "archive_file" "payment" {
   type        = "zip"
-  source_file = "${var.lambda_source_dir}/rexony_payment.js"
   output_path = "${local.build_dir}/rexony_payment.zip"
+
+  source {
+    content  = file("${var.lambda_source_dir}/rexony_payment.js")
+    filename = "rexony_payment.js"
+  }
+
+  source {
+    content  = "{\"type\": \"module\"}"
+    filename = "package.json"
+  }
 }
 
 resource "aws_lambda_function" "payment" {
@@ -153,8 +190,17 @@ resource "aws_cloudwatch_log_group" "payment" {
 # ─── rexony-sns (order-confirmation email via SES) ───────────────
 data "archive_file" "sns" {
   type        = "zip"
-  source_file = "${var.lambda_source_dir}/rexony_sns"
   output_path = "${local.build_dir}/rexony_sns.zip"
+
+  source {
+    content  = file("${var.lambda_source_dir}/rexony_sns")
+    filename = "rexony_sns.js"
+  }
+
+  source {
+    content  = "{\"type\": \"module\"}"
+    filename = "package.json"
+  }
 }
 
 resource "aws_lambda_function" "sns" {
@@ -200,8 +246,17 @@ resource "aws_lambda_event_source_mapping" "orders_to_sns" {
 # ─── rexony-users ────────────────────────────────────────────────
 data "archive_file" "users" {
   type        = "zip"
-  source_file = "${var.lambda_source_dir}/rexony_users.js"
   output_path = "${local.build_dir}/rexony_users.zip"
+
+  source {
+    content  = file("${var.lambda_source_dir}/rexony_users.js")
+    filename = "rexony_users.js"
+  }
+
+  source {
+    content  = "{\"type\": \"module\"}"
+    filename = "package.json"
+  }
 }
 
 resource "aws_lambda_function" "users" {
