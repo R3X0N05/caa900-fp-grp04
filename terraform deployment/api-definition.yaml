@@ -1338,4 +1338,3 @@ components:
         type: "cognito_user_pools"
         providerARNs:
         - "${cognito_user_pool_arn}"
-x-amazon-apigateway-security-policy: "TLS_1_2"

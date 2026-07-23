@@ -89,6 +89,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         type = "metric"
         properties = {
           title  = "Lambda Invocations"
+          region = var.aws_region
           period = 300
           stat   = "Sum"
           metrics = [
@@ -101,6 +102,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         type = "metric"
         properties = {
           title  = "Lambda Errors"
+          region = var.aws_region
           period = 300
           stat   = "Sum"
           metrics = [
@@ -113,6 +115,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         type = "metric"
         properties = {
           title  = "API Gateway Latency (ms)"
+          region = var.aws_region
           period = 300
           stat   = "p99"
           metrics = [

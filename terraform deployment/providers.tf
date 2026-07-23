@@ -24,6 +24,7 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
+  profile = "rexony-test"
 
   default_tags {
     tags = local.common_tags
