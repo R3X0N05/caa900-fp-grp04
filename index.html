@@ -622,7 +622,15 @@
         <div class="admin-header"><h1>Orders</h1></div>
         <div class="admin-table-card">
           <table class="admin-table">
-            <thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Total</th><th>Date</th><th>Status</th><th>Update</th></tr></thead>
+            <thead><tr>
+              <th onclick="sortOrders('orderId')" style="cursor:pointer">Order ID</th>
+              <th onclick="sortOrders('userEmail')" style="cursor:pointer">Customer</th>
+              <th>Items</th>
+              <th onclick="sortOrders('totalPrice')" style="cursor:pointer">Total</th>
+              <th onclick="sortOrders('createdAt')" style="cursor:pointer">Date ▼</th>
+              <th onclick="sortOrders('status')" style="cursor:pointer">Status</th>
+              <th>Update</th>
+            </tr></thead>
             <tbody id="admin-orders-tbody"><tr><td colspan="7" class="loading-cell">Loading…</td></tr></tbody>
           </table>
         </div>

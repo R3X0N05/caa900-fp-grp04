@@ -34,7 +34,23 @@ export const handler = async (event) => {
         createdAt:     new Date().toISOString(),
       };
       await db.send(new PutCommand({ TableName: TABLE, Item: order }));
-      return { statusCode: 201, headers: H, body: JSON.stringify({ order }) };
+
+      for (const item of (body.orderItems || [])) {
+        if (!item.productId) continue;
+        try {
+          await db.send(new UpdateCommand({
+            TableName: "Products",
+            Key: { productId: item.productId },
+            UpdateExpression: "SET #s = #s - :qty",
+            ExpressionAttributeNames: { "#s": "Stock" },
+            ExpressionAttributeValues: { ":qty": item.quantity || 1 },
+            ConditionExpression: "#s >= :qty",
+          }));
+        } catch (e) {
+          console.warn("Stock update skipped for", item.productId, e.message);
+        }
+}
+  return { statusCode: 201, headers: H, body: JSON.stringify({ order }) };
     }
 
     // GET /orders/me

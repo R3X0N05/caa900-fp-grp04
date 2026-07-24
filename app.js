@@ -17,6 +17,22 @@ let STATE = {
   adminSection:   "dashboard",
 };
 
+let STATE = {
+  user:           null,
+  cart:           [],
+  shippingInfo:   JSON.parse(sessionStorage.getItem("rexony_shipping") || "null"),
+  products:       [],
+  allProducts:    [],
+  currentProduct: null,
+  currentPage:    "home",
+  minRating:      0,
+  selectedStars:  0,
+  currentOrderId: null,
+  adminSection:   "dashboard",
+};
+
+let _orderSort = { key: "createdAt", dir: -1 };
+
 // ═══ INIT ══════════════════════════════════════════════════════════
 window.addEventListener("load", async () => {
   initCognito();
@@ -1020,12 +1036,23 @@ async function doDeleteProduct(id) {
   catch (e) { showToast(e.message, "error"); }
 }
 
+function sortOrders(key) {
+  if (_orderSort.key === key) _orderSort.dir *= -1;
+  else { _orderSort.key = key; _orderSort.dir = -1; }
+  loadAdminOrders();
+}
+
 async function loadAdminOrders() {
   const tbody = document.getElementById("admin-orders-tbody");
   tbody.innerHTML = `<tr><td colspan="7" class="loading-cell">Loading...</td></tr>`;
   try {
     const data   = await OrderAPI.adminAll();
     const orders = data.orders || [];
+    orders.sort((a, b) => {
+      const av = a[_orderSort.key] || "";
+      const bv = b[_orderSort.key] || "";
+      return av < bv ? -_orderSort.dir : av > bv ? _orderSort.dir : 0;
+    });
     tbody.innerHTML = orders.map(o => `
       <tr>
         <td class="tm">#${(o.orderId||o._id||"").slice(-8)}</td>
