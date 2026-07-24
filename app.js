@@ -817,6 +817,7 @@ async function loadMyOrders() {
   try {
     const data   = await OrderAPI.mine();
     const orders = data.orders || [];
+    STATE.myOrders = orders;
     if (orders.length === 0) {
       el.innerHTML = `<div class="empty-cart"><div class="empty-icon">📦</div><h2>No orders yet</h2><p>Place your first order!</p><button class="btn-primary" onclick="showPage('shop')">Shop Now</button></div>`;
       return;
@@ -835,7 +836,21 @@ async function loadMyOrders() {
 }
 
 function showOrderDetail(id) {
-  showModal(`<h3 style="margin-bottom:12px">Order #${id.slice(-10)}</h3><p style="color:var(--muted)">Order details would appear here with items, shipping address, and tracking information.</p>`);
+  const o = (STATE.myOrders || []).find(x => (x.orderId || x._id) === id);
+  if (!o) return;
+  const items = (o.orderItems || o.items || []).map(i =>
+    `<tr><td>${i.name}</td><td style="text-align:center">${i.quantity}</td><td style="text-align:right">$${(i.price||0).toFixed(2)}</td></tr>`
+  ).join("");
+  showModal(`
+    <h3 style="margin-bottom:8px">Order #${id.slice(-10)}</h3>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:12px">${new Date(o.createdAt).toLocaleDateString()} · <span class="status-badge">${o.status || "Processing"}</span></p>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px">
+      <thead><tr style="border-bottom:1px solid #333"><th style="text-align:left;padding:4px">Item</th><th style="padding:4px">Qty</th><th style="padding:4px;text-align:right">Price</th></tr></thead>
+      <tbody>${items}</tbody>
+    </table>
+    <p style="font-size:13px"><b>Ship to:</b> ${o.shippingInfo?.address || "—"}, ${o.shippingInfo?.city || ""}</p>
+    <p style="font-size:13px;margin-top:8px"><b>Total:</b> $${(o.totalPrice||0).toFixed(2)}</p>
+  `);
 }
 
 // ═══ PROFILE ═══════════════════════════════════════════════════════
