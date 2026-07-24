@@ -17,20 +17,6 @@ let STATE = {
   adminSection:   "dashboard",
 };
 
-let STATE = {
-  user:           null,
-  cart:           [],
-  shippingInfo:   JSON.parse(sessionStorage.getItem("rexony_shipping") || "null"),
-  products:       [],
-  allProducts:    [],
-  currentProduct: null,
-  currentPage:    "home",
-  minRating:      0,
-  selectedStars:  0,
-  currentOrderId: null,
-  adminSection:   "dashboard",
-};
-
 let _orderSort = { key: "createdAt", dir: -1 };
 
 // ═══ INIT ══════════════════════════════════════════════════════════
