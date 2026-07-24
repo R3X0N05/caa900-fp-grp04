@@ -391,6 +391,7 @@ async function openProduct(id) {
     document.getElementById("pd-name").textContent   = p.name || "";
     document.getElementById("pd-price").textContent  = `$${(p.price || 0).toFixed(2)}`;
     document.getElementById("pd-desc").textContent   = p.description || "";
+    document.getElementById("pd-tags").innerHTML = (p.tags || []).map(t => `<span class="tag-badge">${t}</span>`).join("") ;
     document.getElementById("pd-stars").innerHTML    = renderStars(p.ratings || 0);
     document.getElementById("pd-reviews").textContent = `(${p.numOfReviews || p.reviews?.length || 0} reviews)`;
     document.getElementById("pd-qty-val").textContent = "1";
