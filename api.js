@@ -33,11 +33,12 @@ const CartAPI = {
 
 // ── Orders ────────────────────────────────────────────────────────
 const OrderAPI = {
-  place:    (d)   => apiFetch("/order/new",         { method: "POST", auth: true, body: JSON.stringify(d) }),
-  mine:     ()    => apiFetch("/orders/me",          { auth: true }),
-  adminAll: ()    => apiFetch("/admin/orders",       { auth: true }),
-  update:   (id,d)=> apiFetch(`/admin/order/${id}`,  { method: "PUT", auth: true, body: JSON.stringify(d) }),
-  remove:   (id)  => apiFetch(`/admin/order/${id}`,  { method: "DELETE", auth: true }),
+  place:    (d)    => apiFetch("/order/new",          { method: "POST",   auth: true, body: JSON.stringify(d) }),
+  mine:     ()     => apiFetch("/orders/me",           { auth: true }),
+  adminAll: ()     => apiFetch("/admin/orders",        { auth: true }),
+  update:   (id,d) => apiFetch(`/admin/order/${id}`,  { method: "PUT",    auth: true, body: JSON.stringify(d) }),
+  remove:   (id)   => apiFetch(`/admin/order/${id}`,  { method: "DELETE", auth: true }),
+  cancel:   (id)   => apiFetch(`/order/${id}/cancel`, { method: "PUT",    auth: true }),
 };
 
 // ── Users ─────────────────────────────────────────────────────────

@@ -828,34 +828,49 @@ async function loadMyOrders() {
       return;
     }
     el.innerHTML = orders.map(o => `
-      <div class="order-row">
-        <div><span class="or-id">#${(o.orderId || o._id || "").slice(-10)}</span></div>
-        <div><span style="font-size:13px;color:var(--muted)">${new Date(o.createdAt || Date.now()).toLocaleDateString()}</span></div>
-        <div><span class="or-total">$${(o.totalPrice || 0).toFixed(2)}</span></div>
-        <div><span class="or-status status-${(o.status || "processing").toLowerCase()}">${o.status || "Processing"}</span></div>
-        <button class="or-detail-btn" onclick="showOrderDetail('${o.orderId||o._id}')">Details</button>
-      </div>`).join("");
+    <div class="order-row">
+    <div><span class="or-id">#${(o.orderId || o._id || "").slice(-10)}</span></div>
+    <div><span style="font-size:13px;color:var(--muted)">${new Date(o.createdAt || Date.now()).toLocaleDateString()}</span></div>
+    <div><span class="or-total">$${(o.totalPrice || 0).toFixed(2)}</span></div>
+    <div><span class="or-status status-${(o.status || "processing").toLowerCase()}">${o.status || "Processing"}</span></div>
+    <div style="display:flex;gap:8px">
+      <button class="or-detail-btn" onclick="showOrderDetail('${o.orderId||o._id}')">Details</button>
+      ${o.status === "Processing" ? `<button class="or-detail-btn" style="background:#e53935;border-color:#e53935" onclick="cancelOrder('${o.orderId||o._id}')">Cancel</button>` : ""}
+    </div>
+  </div>`).join("");
   } catch {
     el.innerHTML = `<div class="empty-cart"><div class="empty-icon">📦</div><h2>No orders yet</h2><p>Place your first order to see it here.</p><button class="btn-primary" onclick="showPage('shop')">Shop Now</button></div>`;
   }
 }
 
 function showOrderDetail(id) {
-  const o = (STATE.myOrders || []).find(x => (x.orderId || x._id) === id);
-  if (!o) return;
-  const items = (o.orderItems || o.items || []).map(i =>
-    `<tr><td>${i.name}</td><td style="text-align:center">${i.quantity}</td><td style="text-align:right">$${(i.price||0).toFixed(2)}</td></tr>`
-  ).join("");
+  const order = (STATE.myOrders || []).find(o => (o.orderId || o._id) === id);
+  if (!order) return showModal(`<p>Order not found.</p>`);
+  const items = order.orderItems || order.items || [];
   showModal(`
-    <h3 style="margin-bottom:8px">Order #${id.slice(-10)}</h3>
-    <p style="color:var(--muted);font-size:13px;margin-bottom:12px">${new Date(o.createdAt).toLocaleDateString()} · <span class="status-badge">${o.status || "Processing"}</span></p>
-    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px">
-      <thead><tr style="border-bottom:1px solid #333"><th style="text-align:left;padding:4px">Item</th><th style="padding:4px">Qty</th><th style="padding:4px;text-align:right">Price</th></tr></thead>
-      <tbody>${items}</tbody>
-    </table>
-    <p style="font-size:13px"><b>Ship to:</b> ${o.shippingInfo?.address || "—"}, ${o.shippingInfo?.city || ""}</p>
-    <p style="font-size:13px;margin-top:8px"><b>Total:</b> $${(o.totalPrice||0).toFixed(2)}</p>
+    <h3 style="margin-bottom:12px">Order #${id.slice(-10)}</h3>
+    <p><strong>Status:</strong> <span class="or-status status-${(order.status||'processing').toLowerCase()}">${order.status||'Processing'}</span></p>
+    <p><strong>Date:</strong> ${new Date(order.createdAt||Date.now()).toLocaleDateString()}</p>
+    <hr style="margin:12px 0;border-color:var(--border)">
+    <h4 style="margin-bottom:8px">Items</h4>
+    ${items.map(i => `<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span>${i.name} × ${i.quantity||1}</span><span>$${((i.price||0)*(i.quantity||1)).toFixed(2)}</span></div>`).join("")}
+    <hr style="margin:12px 0;border-color:var(--border)">
+    <div style="display:flex;justify-content:space-between"><span>Subtotal</span><span>$${(order.itemsPrice||0).toFixed(2)}</span></div>
+    <div style="display:flex;justify-content:space-between"><span>Shipping</span><span>$${(order.shippingPrice||0).toFixed(2)}</span></div>
+    <div style="display:flex;justify-content:space-between"><span>Tax</span><span>$${(order.taxPrice||0).toFixed(2)}</span></div>
+    <div style="display:flex;justify-content:space-between;font-weight:bold;margin-top:6px"><span>Total</span><span>$${(order.totalPrice||0).toFixed(2)}</span></div>
+    ${order.shippingInfo ? `<hr style="margin:12px 0;border-color:var(--border)"><h4 style="margin-bottom:8px">Shipping To</h4><p>${order.shippingInfo.address||""}, ${order.shippingInfo.city||""} ${order.shippingInfo.postalCode||""}</p>` : ""}
+    ${order.status === "Processing" ? `<button class="btn-primary" style="margin-top:16px;background:#e53935;border:none;border-radius:6px;padding:8px 16px;color:#fff;cursor:pointer" onclick="cancelOrder('${id}');closeModal()">Cancel Order</button>` : ""}
   `);
+}
+
+async function cancelOrder(id) {
+  if (!confirm("Are you sure you want to cancel this order?")) return;
+  try {
+    await OrderAPI.cancel(id);
+    showToast("Order cancelled", "success");
+    loadMyOrders();
+  } catch (e) { showToast(e.message, "error"); }
 }
 
 // ═══ PROFILE ═══════════════════════════════════════════════════════
@@ -1048,15 +1063,10 @@ function sortOrders(key) {
 
 async function loadAdminOrders() {
   const tbody = document.getElementById("admin-orders-tbody");
-  tbody.innerHTML = `<tr><td colspan="7" class="loading-cell">Loading...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="8" class="loading-cell">Loading...</td></tr>`;
   try {
     const data   = await OrderAPI.adminAll();
     const orders = data.orders || [];
-    orders.sort((a, b) => {
-      const av = a[_orderSort.key] || "";
-      const bv = b[_orderSort.key] || "";
-      return av < bv ? -_orderSort.dir : av > bv ? _orderSort.dir : 0;
-    });
     tbody.innerHTML = orders.map(o => `
       <tr>
         <td class="tm">#${(o.orderId||o._id||"").slice(-8)}</td>
@@ -1071,16 +1081,29 @@ async function loadAdminOrders() {
             <option value="Processing">Processing</option>
             <option value="Shipped">Shipped</option>
             <option value="Delivered">Delivered</option>
+            <option value="Cancelled">Cancelled</option>
           </select>
         </td>
-      </tr>`).join("") || `<tr><td colspan="7" class="loading-cell">No orders yet</td></tr>`;
-  } catch { tbody.innerHTML = `<tr><td colspan="7" class="loading-cell">Error loading orders</td></tr>`; }
+        <td>
+          <button class="tbl-action danger" onclick="deleteAdminOrder('${o.orderId||o._id}')">Delete</button>
+        </td>
+      </tr>`).join("") || `<tr><td colspan="8" class="loading-cell">No orders yet</td></tr>`;
+  } catch { tbody.innerHTML = `<tr><td colspan="8" class="loading-cell">Error loading orders</td></tr>`; }
 }
 
 async function updateOrderStatus(id, status) {
   if (!status) return;
   try { await OrderAPI.update(id, { status }); showToast(`Order updated to ${status}`, "success"); loadAdminOrders(); }
   catch (e) { showToast(e.message, "error"); }
+}
+
+async function deleteAdminOrder(id) {
+  if (!confirm("Delete this order permanently?")) return;
+  try {
+    await OrderAPI.remove(id);
+    showToast("Order deleted", "success");
+    loadAdminOrders();
+  } catch (e) { showToast(e.message, "error"); }
 }
 
 async function loadAdminUsers() {
