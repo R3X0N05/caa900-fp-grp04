@@ -330,7 +330,12 @@ function applyFilters() {
   const minP   = parseFloat(document.getElementById("price-min")?.value || 0);
   const maxP   = parseFloat(document.getElementById("price-max")?.value || 99999);
   const sort   = document.getElementById("sort-select")?.value || "";
+  const q      = document.getElementById("search-input")?.value.toLowerCase().trim() || "";
   let products = [...STATE.allProducts];
+  if (q) products = products.filter(p =>
+    p.name.toLowerCase().includes(q) ||
+    (p.category || "").toLowerCase().includes(q)
+  );
   if (cat) products = products.filter(p => p.category === cat);
   products = products.filter(p => (p.price || 0) >= minP && (p.price || 0) <= maxP);
   if (STATE.minRating > 0) products = products.filter(p => (p.ratings || 0) >= STATE.minRating);
@@ -460,7 +465,13 @@ async function submitReview() {
 // ═══ SEARCH ════════════════════════════════════════════════════════
 function liveSearch() {
   const q = document.getElementById("search-input").value.toLowerCase().trim();
-  if (!q) return;
+  if (!q) {
+    STATE.products = STATE.allProducts;
+    const hg = document.getElementById("home-product-grid");
+    if (hg && STATE.currentPage === "home")
+      hg.innerHTML = STATE.allProducts.slice(0, 8).map(productCard).join("");
+    return;
+  }
   const r = STATE.allProducts.filter(p => p.name.toLowerCase().includes(q) || (p.category || "").toLowerCase().includes(q));
   STATE.products = r;
   const hg = document.getElementById("home-product-grid");
