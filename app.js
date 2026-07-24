@@ -311,7 +311,9 @@ async function loadHomeProducts() {
     return;
   }
   STATE.products = STATE.allProducts;
-  grid.innerHTML = STATE.products.slice(0, 8).map(productCard).join("");
+  const featured = STATE.allProducts.filter(p => p.featured);
+  const toShow = featured.length > 0 ? featured : STATE.allProducts;
+  grid.innerHTML = toShow.slice(0, 8).map(productCard).join("");
 }
 
 async function loadShopProducts() {
@@ -943,7 +945,7 @@ async function loadAdminDashboard() {
 
 async function loadAdminProducts() {
   const tbody = document.getElementById("admin-products-tbody");
-  tbody.innerHTML = `<tr><td colspan="7" class="loading-cell">Loading...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="8" class="loading-cell">Loading...</td></tr>`;
   try {
     const data  = await ProductAPI.adminAll();
     const prods = data.products || [];
@@ -955,12 +957,20 @@ async function loadAdminProducts() {
         <td>${p.category||"—"}</td>
         <td style="color:${p.Stock===0?"var(--red)":p.Stock<10?"var(--yellow)":"inherit"}">${p.Stock||0}</td>
         <td>${renderStars(p.ratings||0)}</td>
+        <td style="text-align:center"><input type="checkbox" ${p.featured ? "checked" : ""} onchange="toggleFeatured('${p.productId||p._id}', this.checked)"></td>
         <td>
           <button class="tbl-action" onclick="editProduct('${p.productId||p._id}')">Edit</button>
           <button class="tbl-action danger" onclick="confirmDeleteProduct('${p.productId||p._id}','${p.name}')">Delete</button>
         </td>
-      </tr>`).join("") || `<tr><td colspan="7" class="loading-cell">No products found</td></tr>`;
-  } catch { tbody.innerHTML = `<tr><td colspan="7" class="loading-cell">Error loading products</td></tr>`; }
+      </tr>`).join("") || `<tr><td colspan="8" class="loading-cell">No products found</td></tr>`;
+  } catch { tbody.innerHTML = `<tr><td colspan="8" class="loading-cell">Error loading products</td></tr>`; }
+}
+
+async function toggleFeatured(id, val) {
+  try {
+    await ProductAPI.update(id, { featured: val });
+    showToast(val ? "Marked as featured" : "Removed from featured", "success");
+  } catch(e) { showToast(e.message, "error"); }
 }
 
 function showAddProduct() {
