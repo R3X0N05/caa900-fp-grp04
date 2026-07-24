@@ -967,7 +967,8 @@ function showAddProduct() {
   document.getElementById("product-form-card").style.display = "block";
   document.getElementById("product-form-title").textContent  = "Add New Product";
   document.getElementById("edit-product-id").value = "";
-  ["prod-name","prod-price","prod-stock","prod-desc","prod-image","prod-tags"].forEach(id => document.getElementById(id).value = "");
+  ["prod-name","prod-price","prod-stock","prod-desc","prod-image","prod-tags","prod-id"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("prod-id").readOnly = false;
   document.getElementById("prod-category").value = "Electronics";
 }
 
@@ -982,12 +983,15 @@ function editProduct(id) {
   document.getElementById("prod-desc").value        = p.description || "";
   document.getElementById("prod-category").value    = p.category || "Electronics";
   document.getElementById("prod-tags").value        = (p.tags || []).join(", ");
+  document.getElementById("prod-id").value          = id;
+  document.getElementById("prod-id").readOnly       = true;
   switchAdmin("products");
   document.getElementById("product-form-card").scrollIntoView({ behavior: "smooth" });
 }
 
 async function saveProduct() {
   const id   = document.getElementById("edit-product-id").value;
+  const customId = document.getElementById("prod-id").value.trim();
   const data = {
     name:        document.getElementById("prod-name").value.trim(),
     price:       parseFloat(document.getElementById("prod-price").value),
@@ -997,6 +1001,7 @@ async function saveProduct() {
     images:      [{ url: document.getElementById("prod-image").value.trim() }],
     tags:        document.getElementById("prod-tags").value.split(",").map(t => t.trim()).filter(Boolean),
   };
+  if (!id && customId) data.productId = customId;
   if (!data.name || isNaN(data.price)) return showToast("Name and price are required", "error");
   try {
     if (id) { await ProductAPI.update(id, data); showToast("Product updated!", "success"); }
