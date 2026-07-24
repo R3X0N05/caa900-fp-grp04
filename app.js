@@ -966,7 +966,7 @@ function showAddProduct() {
   document.getElementById("product-form-card").style.display = "block";
   document.getElementById("product-form-title").textContent  = "Add New Product";
   document.getElementById("edit-product-id").value = "";
-  ["prod-name","prod-price","prod-stock","prod-desc","prod-image"].forEach(id => document.getElementById(id).value = "");
+  ["prod-name","prod-price","prod-stock","prod-desc","prod-image","prod-tags"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("prod-category").value = "Electronics";
 }
 
@@ -980,6 +980,7 @@ function editProduct(id) {
   document.getElementById("prod-stock").value       = p.Stock || "";
   document.getElementById("prod-desc").value        = p.description || "";
   document.getElementById("prod-category").value    = p.category || "Electronics";
+  document.getElementById("prod-tags").value        = (p.tags || []).join(", ");
   switchAdmin("products");
   document.getElementById("product-form-card").scrollIntoView({ behavior: "smooth" });
 }
@@ -987,13 +988,14 @@ function editProduct(id) {
 async function saveProduct() {
   const id   = document.getElementById("edit-product-id").value;
   const data = {
-  name:        document.getElementById("prod-name").value.trim(),
-  price:       parseFloat(document.getElementById("prod-price").value),
-  category:    document.getElementById("prod-category").value,
-  Stock:       parseInt(document.getElementById("prod-stock").value),
-  description: document.getElementById("prod-desc").value.trim(),
-  images:      [{ url: document.getElementById("prod-image").value.trim() }],  // ADD THIS
-};
+    name:        document.getElementById("prod-name").value.trim(),
+    price:       parseFloat(document.getElementById("prod-price").value),
+    category:    document.getElementById("prod-category").value,
+    Stock:       parseInt(document.getElementById("prod-stock").value),
+    description: document.getElementById("prod-desc").value.trim(),
+    images:      [{ url: document.getElementById("prod-image").value.trim() }],
+    tags:        document.getElementById("prod-tags").value.split(",").map(t => t.trim()).filter(Boolean),
+  };
   if (!data.name || isNaN(data.price)) return showToast("Name and price are required", "error");
   try {
     if (id) { await ProductAPI.update(id, data); showToast("Product updated!", "success"); }
