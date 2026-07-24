@@ -938,7 +938,7 @@ function showAddProduct() {
   document.getElementById("product-form-card").style.display = "block";
   document.getElementById("product-form-title").textContent  = "Add New Product";
   document.getElementById("edit-product-id").value = "";
-  ["prod-name","prod-price","prod-stock","prod-desc"].forEach(id => document.getElementById(id).value = "");
+  ["prod-name","prod-price","prod-stock","prod-desc","prod-image"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("prod-category").value = "Electronics";
 }
 
