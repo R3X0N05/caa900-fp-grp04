@@ -919,7 +919,7 @@ async function loadAdminDashboard() {
     const products = pData.products || [];
     const orders   = oData.orders   || [];
     const users    = uData.users    || [];
-    const revenue  = orders.reduce((s, o) => s + (o.totalPrice || 0), 0);
+    const revenue = orders.reduce((s, o) => s + (o.itemsPrice || 0), 0);
     document.getElementById("dash-revenue").textContent  = `$${revenue.toFixed(2)}`;
     document.getElementById("dash-products").textContent = products.length;
     document.getElementById("dash-orders").textContent   = orders.length;
@@ -1009,7 +1009,7 @@ async function saveProduct() {
     Stock:       parseInt(document.getElementById("prod-stock").value),
     description: document.getElementById("prod-desc").value.trim(),
     images:      [{ url: document.getElementById("prod-image").value.trim() }],
-    tags:        document.getElementById("prod-tags").value.split(",").map(t => t.trim()).filter(Boolean),
+    tags:        document.getElementById("prod-tags")?.value.trim().split(",").map(t => t.trim()).filter(Boolean) || [],
   };
   if (!id && customId) data.productId = customId;
   if (!data.name || isNaN(data.price)) return showToast("Name and price are required", "error");
