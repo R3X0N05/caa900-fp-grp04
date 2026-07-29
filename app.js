@@ -54,7 +54,8 @@ window.addEventListener("load", async () => {
       const info        = JSON.parse(sessionStorage.getItem("orderInfo") || "{}");
       const pendingCart = JSON.parse(sessionStorage.getItem("rexony_pending_cart") || "[]");
       if (pendingCart.length > 0) {
-        await OrderAPI.place({
+        const guestEmail = sessionStorage.getItem("rexony_guest_email") || "";
+      const orderData = {
           shippingInfo:  STATE.shippingInfo,
           orderItems:    pendingCart,
           itemsPrice:    info.subtotal,
@@ -62,7 +63,14 @@ window.addEventListener("load", async () => {
           shippingPrice: info.shippingCharges,
           totalPrice:    info.totalPrice,
           paymentInfo:   { status: "succeeded" },
-        });
+          guestEmail,
+        };
+        if (STATE.user) {
+          await OrderAPI.place(orderData);
+        } else {
+          await OrderAPI.placeGuest(orderData);
+        }
+        sessionStorage.removeItem("rexony_guest_email");
         if (STATE.user) await CartAPI.clear();
         STATE.cart = [];
         localStorage.removeItem("rexony-guest-cart");
@@ -718,11 +726,12 @@ function proceedToCheckout() {
   if (STATE.cart.length === 0) return;
   if (!STATE.user) {
     showModal(`
-      <h3 style="margin-bottom:12px">Sign in to Checkout</h3>
-      <p style="color:var(--muted);margin-bottom:20px">Your cart is saved. Log in to complete your purchase.</p>
-      <div style="display:flex;gap:10px">
+      <h3 style="margin-bottom:12px">Checkout</h3>
+      <p style="color:var(--muted);margin-bottom:20px">Sign in for order history, or continue as a guest.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn-primary" onclick="closeModal();showPage('login')">Log In</button>
         <button class="btn-ghost" onclick="closeModal();showPage('register')">Register</button>
+        <button class="btn-ghost" onclick="closeModal();guestCheckout()">Continue as Guest</button>
       </div>`);
     return;
   }
@@ -737,9 +746,34 @@ function proceedToCheckout() {
   }
 }
 
+function guestCheckout() {
+  showModal(`
+    <h3 style="margin-bottom:12px">Continue as Guest</h3>
+    <p style="color:var(--muted);margin-bottom:16px">Enter your email to receive order confirmation.</p>
+    <input type="email" id="guest-email-input" placeholder="your@email.com" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);margin-bottom:16px">
+    <button class="btn-primary" style="width:100%" onclick="
+      const e = document.getElementById('guest-email-input').value.trim();
+      if (!e || !e.includes('@')) { return; }
+      STATE.guestEmail = e;
+      sessionStorage.setItem('rexony_guest_email', e);
+      closeModal();
+      showPage('shipping');
+    ">Continue to Shipping</button>
+  `);
+}
+
 // function proceedToCheckout() {
-//   if (!STATE.user) { showToast("Please log in first", "error"); showPage("login"); return; }
 //   if (STATE.cart.length === 0) return;
+//   if (!STATE.user) {
+//     showModal(`
+//       <h3 style="margin-bottom:12px">Sign in to Checkout</h3>
+//       <p style="color:var(--muted);margin-bottom:20px">Your cart is saved. Log in to complete your purchase.</p>
+//       <div style="display:flex;gap:10px">
+//         <button class="btn-primary" onclick="closeModal();showPage('login')">Log In</button>
+//         <button class="btn-ghost" onclick="closeModal();showPage('register')">Register</button>
+//       </div>`);
+//     return;
+//   }
 //   showPage("shipping");
 //   if (STATE.shippingInfo) {
 //     ["address","city","state","pin","phone"].forEach(f => {
@@ -803,11 +837,12 @@ async function processPayment() {
     sessionStorage.setItem("rexony_pending_shipping", JSON.stringify(STATE.shippingInfo || {}));
     const token = await getJwtToken();
     if (token) sessionStorage.setItem("rexony_auth_token", token);
+    const guestEmail = STATE.guestEmail || sessionStorage.getItem("rexony_guest_email") || "";
     const payData = await PaymentAPI.createIntent({
-      email:  STATE.user?.email,
-      items:  STATE.cart,
-      amount: Math.round((info.totalPrice || 0) * 100),
-    });
+        email:  STATE.user?.email || guestEmail,
+        items:  STATE.cart,
+        amount: Math.round((info.totalPrice || 0) * 100),
+  });
     window.location.href = payData.url;
   } catch (e) {
     showToast("Payment failed: " + e.message, "error");
