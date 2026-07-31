@@ -55,3 +55,8 @@ const UserAPI = {
 const PaymentAPI = {
   createIntent: (d) => apiFetch("/payment/checkout", { method: "POST", body: JSON.stringify(d) }),
 };
+
+// ── Contact Form ───────────────────────────────────────────────────────
+const ContactAPI = {
+  submit: (d) => apiFetch("/contact", { method: "POST", auth: false, body: JSON.stringify(d) }),
+};

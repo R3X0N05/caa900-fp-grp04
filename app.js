@@ -1192,7 +1192,26 @@ async function deleteReview(rid, pid) {
 }
 
 // ═══ CONTACT ══════════════════════════════════════════════════════
-function submitContact() { showToast("Message sent! We'll get back to you soon.", "success"); }
+async function submitContact() {
+  const name    = document.getElementById('contact-name')?.value?.trim();
+  const email   = document.getElementById('contact-email')?.value?.trim();
+  const subject = document.getElementById('contact-subject')?.value?.trim();
+  const message = document.getElementById('contact-message')?.value?.trim();
+
+  if (!name || !email || !message) {
+    showToast("Please fill in your name, email, and message.", "error");
+    return;
+  }
+
+  try {
+    await ContactAPI.submit({ name, email, subject, message });
+    showToast("Message sent! We'll get back to you soon.", "success");
+    ['contact-name','contact-email','contact-subject','contact-message']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  } catch {
+    showToast("Failed to send message. Please try again.", "error");
+  }
+}
 
 // ═══ UTILITIES ════════════════════════════════════════════════════
 let _toastTimer;
