@@ -1,0 +1,55 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Amplify
+    runs-on: ubuntu-latest
+    environment: prod
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Trigger Amplify deployment
+        run: |
+          JOB_ID=$(aws amplify start-job \
+            --app-id ${{ vars.AMPLIFY_APP_ID }} \
+            --branch-name main \
+            --job-type RELEASE \
+            --query 'jobSummary.jobId' \
+            --output text)
+          echo "Amplify job started: $JOB_ID"
+          echo "JOB_ID=$JOB_ID" >> $GITHUB_ENV
+
+      - name: Wait for deployment
+        run: |
+          while true; do
+            STATUS=$(aws amplify get-job \
+              --app-id ${{ vars.AMPLIFY_APP_ID }} \
+              --branch-name main \
+              --job-id "$JOB_ID" \
+              --query 'job.summary.status' \
+              --output text)
+            echo "Status: $STATUS"
+            if [ "$STATUS" = "SUCCEED" ]; then
+              echo "Deployment succeeded!"
+              break
+            elif [ "$STATUS" = "FAILED" ] || [ "$STATUS" = "CANCELLED" ]; then
+              echo "Deployment failed: $STATUS"
+              exit 1
+            fi
+            sleep 30
+          done
