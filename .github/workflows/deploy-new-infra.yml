@@ -2,7 +2,7 @@ name: Deploy Frontend (new-infra)
 
 on:
   push:
-    branches: [new-infra]
+    branches: [testtf]
   workflow_dispatch:
 
 jobs:
