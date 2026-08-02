@@ -27,7 +27,7 @@ jobs:
         run: |
           JOB_ID=$(aws amplify start-job \
             --app-id ${{ vars.AMPLIFY_APP_ID }} \
-            --branch-name main \
+            --branch-name testtf \
             --job-type RELEASE \
             --query 'jobSummary.jobId' \
             --output text)
@@ -39,7 +39,7 @@ jobs:
           while true; do
             STATUS=$(aws amplify get-job \
               --app-id ${{ vars.AMPLIFY_APP_ID }} \
-              --branch-name main \
+              --branch-name testtf \
               --job-id "$JOB_ID" \
               --query 'job.summary.status' \
               --output text)
