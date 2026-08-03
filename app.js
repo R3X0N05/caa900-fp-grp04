@@ -357,7 +357,10 @@ function applyFilters() {
   STATE.products = products;
   const grid = document.getElementById("shop-product-grid");
   if (grid) {
-    document.getElementById("shop-count").textContent = `${products.length} product${products.length !== 1 ? "s" : ""}`;
+    const _sq = document.getElementById("search-input")?.value.trim();
+    document.getElementById("shop-count").innerHTML = _sq
+    ? `${products.length} result${products.length !== 1 ? "s" : ""} for "<strong>${_sq}</strong>"`
+    : `${products.length} product${products.length !== 1 ? "s" : ""}`;
     grid.innerHTML = products.map(productCard).join("") || `<p style="color:var(--muted);grid-column:1/-1">No products match these filters.</p>`;
   }
   const hg = document.getElementById("home-product-grid");
@@ -508,6 +511,7 @@ function clearFilters() {
   document.getElementById("price-min").value   = 0;
   document.getElementById("price-max").value   = 5000;
   document.getElementById("sort-select").value = "";
+  document.getElementById("search-input").value = "";
   STATE.minRating = 0;
   setMinRating(0);
   updatePriceLabel();
@@ -931,7 +935,7 @@ async function updateProfile() {
   const name = document.getElementById("profile-name-input").value.trim();
   if (!name) return showToast("Name cannot be empty", "error");
   try {
-    await UserAPI.updateMe({ name });
+    await cognitoUpdateName(name);
     STATE.user.name = name;
     renderProfile();
     showToast("Profile updated!", "success");

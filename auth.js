@@ -133,3 +133,22 @@ function cognitoResendCode(email) {
     });
   });
 }
+
+function cognitoUpdateName(name) {
+  return new Promise((res, rej) => {
+    if (!_pool) {
+      const d = localStorage.getItem("_demo_user");
+      if (d) { const u = JSON.parse(d); u.name = name; localStorage.setItem("_demo_user", JSON.stringify(u)); }
+      return res(true);
+    }
+    const u = _pool.getCurrentUser();
+    if (!u) return rej("Not logged in");
+    u.getSession((err, s) => {
+      if (err || !s.isValid()) return rej("Session expired — please log in again");
+      u.updateAttributes(
+        [new AmazonCognitoIdentity.CognitoUserAttribute({ Name: "name", Value: name })],
+        (err2) => { if (err2) return rej(err2.message); res(true); }
+      );
+    });
+  });
+}

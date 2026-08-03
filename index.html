@@ -140,8 +140,8 @@
       <div class="filter-group">
         <label class="filter-label">Price Range</label>
         <div class="price-range">
-          <input type="range" id="price-min" min="0" max="5000" value="0" oninput="updatePriceLabel()"/>
-          <input type="range" id="price-max" min="0" max="5000" value="5000" oninput="updatePriceLabel()"/>
+          <input type="range" id="price-min" min="0" max="5000" value="0" oninput="updatePriceLabel(); applyFilters()"/>
+          <input type="range" id="price-max" min="0" max="5000" value="5000" oninput="updatePriceLabel(); applyFilters()"/>
           <div class="price-labels"><span id="price-min-lbl">$0</span><span id="price-max-lbl">$5000</span></div>
         </div>
       </div>
@@ -594,9 +594,8 @@
           <h2 id="product-form-title">Add New Product</h2>
           <input type="hidden" id="edit-product-id"/>
           <div class="form-grid">
-            <div class="form-group"><label>Product Name</label><input type="text" id="prod-name" placeholder="e.g. Wireless Headphones"/></div>
+            <div class="form-group"><label>Product Name *</label><input type="text" id="prod-name" placeholder="e.g. Wireless Headphones" required/></div>
             <div class="form-group"><label>Product ID (optional)</label><input type="text" id="prod-id" placeholder="Leave blank to auto-generate"/></div>
-            <div class="form-group"><label>Price (USD)</label><input type="number" id="prod-price" placeholder="49.99" step="0.01"/></div>
             <div class="form-group"><label>Price (USD)</label><input type="number" id="prod-price" placeholder="49.99" step="0.01"/></div>
             <div class="form-group"><label>Category</label>
               <select id="prod-category">
@@ -604,8 +603,8 @@
                 <option>For Gals</option><option>Wearables</option><option>Decor</option>
               </select>
             </div>
-            <div class="form-group"><label>Stock</label><input type="number" id="prod-stock" placeholder="100"/></div>
-            <div class="form-group full-span"><label>Description</label><textarea id="prod-desc" rows="3" placeholder="Product description…"></textarea></div>
+            <div class="form-group"><label>Stock *</label><input type="number" id="prod-stock" placeholder="100" min="0" required/></div>
+            <div class="form-group full-span"><label>Description *</label><textarea id="prod-desc" rows="3" placeholder="Product description…" required></textarea></div>
             <div class="form-group full-span"><label>Image URL</label><input type="text" id="prod-image" placeholder="https://your-image-url.com/image.jpg"/></div>
             <div class="form-group full-span"><label>Tags</label><input type="text" id="prod-tags" placeholder="e.g. anime, figure, limited (comma-separated)"/></div>
           </div>
