@@ -37,7 +37,7 @@ function loadUserFromSession() {
     u.getSession((err, s) => {
       if (err || !s.isValid()) return res(null);
       const c = s.getIdToken().payload;
-      res({ _id: c.sub, name: c.name || c["cognito:username"] || "User", email: c.email, role: c["custom:role"] || "user" });
+      res({ _id: c.sub, name: c.name || c["cognito:username"] || "User", email: c.email, role: c["custom:custom:role"] || "user" });
     });
   });
 }
@@ -59,7 +59,7 @@ function cognitoLogin(email, password) {
     cogUser.authenticateUser(new AmazonCognitoIdentity.AuthenticationDetails({ Username: email, Password: password }), {
       onSuccess: s => {
         const c = s.getIdToken().payload;
-        res({ _id: c.sub, name: c.name || email.split("@")[0], email: c.email, role: c["custom:role"] || "user" });
+        res({ _id: c.sub, name: c.name || email.split("@")[0], email: c.email, role: c["custom:custom:role"] || "user" });
       },
       onFailure: e => rej(e.message || "Login failed"),
     });

@@ -125,7 +125,7 @@ async function loadUserFromSession() {
         resolve({
           name: payload.name || payload.email || currentUser.getUsername(),
           email: payload.email || "",
-          role: payload["custom:role"] || "user",
+          role: payload["custom:custom:role"] || "user",
           username: currentUser.getUsername()
         });
       });
